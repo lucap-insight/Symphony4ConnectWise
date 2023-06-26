@@ -71,7 +71,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
      */
-    private UUID accountId = UUID.fromString("e8ab4178-81fb-43c9-8eae-1a61d609a991");
+    private UUID accountId = UUID.fromString("");
 
     /**
      * Default no-arg constructor
