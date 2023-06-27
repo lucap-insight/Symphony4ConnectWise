@@ -29,7 +29,7 @@ public class MockSymphony{
         String symphonyId = "1067758";
         String symphonyLink = "1067758";
         String thirdPartyId = "187562";
-        String thirdPartyLink = null;
+        String thirdPartyLink = "https://connect.insightsystems.com.au/v4_6_release/apis/3.0/service/tickets/187562";
         String customerId = "";
         String priority = "Minor";
         String status = "Open";

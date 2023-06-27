@@ -71,7 +71,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
      */
-    private UUID accountId = UUID.fromString("");
+    private UUID accountId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     /**
      * Default no-arg constructor
@@ -161,6 +161,17 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 logger.warn("syncTalTicket: API_PATH not setup on Config");
             }
 
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null ||
+                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null) {
+                String errorMessage = "ConnectWise API Credentials missing:";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null)
+                    errorMessage += " clientID";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
+                    errorMessage += " Authorization";
+                logger.error("syncTalTicket: " + errorMessage);
+                throw new NullPointerException(errorMessage);
+            }
+
             // If ticket has Third Party ID and Third Party Link (already exists in ConnectWise)
             if (talTicket.getThirdPartyId() != null || talTicket.getThirdPartyLink() != null) {
                 logger.info("syncTalTicket: Ticket has ID or Third Party link");
@@ -206,7 +217,6 @@ public class SampleTalAdapterImpl implements TalAdapter {
                     // Check if a connectionFailed already happen to prevent creating multiple tickets
                     if (Objects.equals(talTicket.getExtraParams().get("connectionFailed"), "true")) {
                         logger.info("synTalTicket: Ticket has failed before - not creating new ticket");
-                        //createTicket = false;
                         throw new TalAdapterSyncException("Cannot sync TAL ticket");
                     } else {
                         logger.info("syncTalTicket: Attempting to create new ticket");
@@ -216,10 +226,10 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 }
                 // if response has value it means API call was successful
                 else {
-                    createTicket = false;
+                    createTicket = false; // no need to create ticket anymore
                     logger.info("syncTalTicket: Attempt successful");
 
-                    // Add extra parameter to show connection was successful
+                    // Add extra parameter to show connection was successful (set connectionFailed to false)
                     if (talTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
                         // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
                         talTicket.getExtraParams().replace("connectionFailed","false");
@@ -229,7 +239,9 @@ public class SampleTalAdapterImpl implements TalAdapter {
 
             // If ticket does not exist in ConnectWise: Create ticket in ConnectWise
             if (createTicket) {
+                // See if connection was even attempted
                 if (!connectionFailed) {
+                    // If connection hasn't failed it means connection has not been attempted, so:
                     logger.info("syncTalTicket: Ticket has no ID and Third Party Link");
                 } else {
                     // Add extra parameter to not duplicate ticket in case it happens again
@@ -240,10 +252,10 @@ public class SampleTalAdapterImpl implements TalAdapter {
                     }
                     // Change description to note that the ticket has failed before
                     if (talTicket.getSubject() != null) {
-                        talTicket.setSubject(talTicket.getSubject() + " - ERROR: previous synced ticket not found");
+                        talTicket.setSubject(talTicket.getSubject() + " - ERROR: previous ticket not found");
                     } else {
                         // FIXME: Hard coded summary standard
-                        talTicket.setSubject("<Symphony> NEW Ticket - ERROR: previous synced ticket not found");
+                        talTicket.setSubject("<Symphony> NEW Ticket - ERROR: previous ticket not found");
                     }
                 }
 
@@ -254,21 +266,21 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                         config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
                     logger.error("syncTalTicket: URL or API_PATH not setup on Config");
-                    throw new TalAdapterSyncException("Cannot create a new ticket: URL or API_PATH not setup on config");
+                    throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config");
                 }
 
                 url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                         config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH);
 
                 // Body of the request
-                // FIXME: Get board and company from ticketSourceConfig
+                // FIXME: Get board and company from ticketSourceConfig/TalConfigService
                 String requestBody = "{\n" +
                         "    \"summary\" : \"" + talTicket.getSubject() + "\",\n" +
                         "    \"board\" : {\n" +
-                        "        \"id\": 199\n" +
+                        "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
                         "    },\n" +
                         "    \"company\": {\n" +
-                        "        \"id\": 250\n" +
+                        "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
                         "    },\n" +
                         "    \"priority\" : {\n" +
                         "        \"id\": "+ talTicket.getPriority() +"\n" +
@@ -276,17 +288,14 @@ public class SampleTalAdapterImpl implements TalAdapter {
                         //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
                         "}";
 
-                // Writing the body
+                // Attempt creating ticket
                 try {
                     CWTicket = ConnectWiseAPICall(url, "POST", requestBody);
-                } catch (TalAdapterSyncException e) {
-                    logger.error("syncTalTicket: Unable to POST ticket - {}", e.getMessage());
-                    throw e;
                 }
-                // FIXME: catch for TalRecoverableException
+                // I can catch any exception because there is already error handling in the ConnectWiseAPICall method
                 catch (Exception e) {
                     logger.error("syncTalTicket: Unable to POST ticket - {}", e.getMessage());
-                    throw new RuntimeException(e.getMessage());
+                    throw e;
                 }
 
                 // Setting URL to proper value with ticket id
@@ -294,6 +303,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
                     logger.info("syncTalTicket: setting TalTicket third party id");
                     url += "/" + CWTicket.get("id");
                     talTicket.setThirdPartyId(CWTicket.get("id") + "");
+                    talTicket.setThirdPartyLink(url);
                 }
 
                 // Adding initial priority comment
@@ -309,7 +319,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
 
             // url should now be set to a valid value
             if (url == null) {
-                throw new RuntimeException("An unexpected error occurred: URL not set properly");
+                throw new NullPointerException("An unexpected error occurred: URL is null");
             } else {
                 logger.info("syncTalTicket: Connection set to: " + url);
             }
@@ -325,7 +335,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
             // Check if connection was established correctly
             if (CWTicket == null) {
                 logger.info("syncTalTicket: ConnectWise ticket error");
-                throw new RuntimeException("ConnectWise ticket error");
+                throw new NullPointerException("ConnectWise ticket is null");
             }
 
             // Ticket's third party link and ID check
@@ -380,16 +390,17 @@ public class SampleTalAdapterImpl implements TalAdapter {
                     // If ticket summary does not exist (Symphony or CW), use description instead
                     SymphonyValue = talTicket.getDescription();
                     talTicket.setSubject(SymphonyValue);
-                    logger.info("SampleTalAdapter: syncTalTicket: Setting ticket summary to ticket description");
+                    logger.info("syncTalTicket: Setting ticket summary to ticket description");
                 } else {
                     // If ticket description also does not exist, use pre-set value for ticket summary
-                    logger.info("SampleTalAdapter: syncTalTicket: Symphony ticket does not have summary or description. Using standard summary.");
+                    logger.info("syncTalTicket: Symphony ticket does not have summary or description. Using standard summary.");
                     // FIXME: Hard coded summary standard
                     SymphonyValue = "<Symphony> NEW Ticket";
                     talTicket.setSubject(SymphonyValue);
                 }
             }
 
+            // createRequestBody returns null if no update is needed
             String requestResult = createRequestBody(SymphonyValue, ConnectWiseValue, path, true);
             if (requestResult != null)  { // So, if an update is needed:
                 if (Objects.equals(requestResult, "Update Symphony")) {
@@ -508,7 +519,12 @@ public class SampleTalAdapterImpl implements TalAdapter {
             if (!requestBody.isEmpty()) {
                 requestBody = "[" + requestBody + "]"; // Final request formatting
                 logger.info("syncTalTicket: Making PATCH request");
-                ConnectWiseAPICall(url, "PATCH", requestBody);
+                try {
+                    ConnectWiseAPICall(url, "PATCH", requestBody);
+                } catch (Exception e) {
+                    logger.error("syncTalTicket: PATCH request failed");
+                    throw e;
+                }
             } else {
                 logger.info("syncTalTicket: No API call made");
             }
@@ -524,7 +540,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
 
         }
         catch (TalAdapterSyncException r) {
-            logger.warn("Failed to sync ticket from TAL to InMemory Ticket System {}", talTicket);
+            logger.error("Failed to sync ticket from TAL to InMemory Ticket System {}", talTicket);
             /*
             Recoverable exceptions:
                 - TalAdapterSyncException:
@@ -540,7 +556,6 @@ public class SampleTalAdapterImpl implements TalAdapter {
             RecoverableHttpStatus.add(503);
 
             if (r.getHttpStatus() != null) {
-                int HttpStatus = r.getHttpStatus().value();
                 if (RecoverableHttpStatus.contains(r.getHttpStatus().value())) {
                     throw new TalRecoverableException(r, talTicket);
                 }
@@ -551,7 +566,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
         catch (Exception e) {
             // Otherwise the method will change the error to a TalAdapterSyncException and add the information to the
             //error description
-            logger.warn("Failed to sync ticket from TAL to InMemory Ticket System {}", talTicket);
+            logger.error("Failed to sync ticket from TAL to InMemory Ticket System {}", talTicket);
 
             throw new TalNotRecoverableException(e,talTicket);
         }
