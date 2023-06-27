@@ -20,6 +20,16 @@ public class MockSymphony{
         this.TAL = TAL;
     }
 
+    /*
+     * The next few methods with "getTicket[...]" are template Symphony tickets (talTickets). Before using them you
+     * might want to change or delete the third party values as they are only mock values.
+     *
+     * Here is what each one of them does:
+     *      - getTicket: Properly setup so that there are no changes when called on an existing ticket.
+     *      - getTicket2: Fully setup talTicket but without any third party information (first time going to CW)
+     *      - getTicketPOSTMissingInfo: talTicket with minimal information necessary to be synced to CW
+     */
+
     /**
      * This getTicket is not a real Symphony method and is used only to return a pre-set TalTicket
      * @return properly setup TalTicket object
@@ -62,37 +72,6 @@ public class MockSymphony{
         comments.add(initialDescription);
 
         //extraParams.put("connectionFailed", "true");
-
-        // Creating new ticket
-        TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
-                thirdPartyLink, customerId, priority, status, subject,
-                description, requester, assignedTo, comments,
-                attachments, extraParams, lastModified);
-
-        return newTicket;
-    }
-
-
-    public TalTicket getTicketPATCHMissingInfo() {
-        // Setting parameters for new ticket
-        String symphonyId = "1067758";
-        String symphonyLink = "1067758";
-        String thirdPartyId = "205725";
-        String thirdPartyLink = null;
-        String customerId = "";
-        String priority = "Minor";
-        String status = null;
-        String subject = null;
-        String description = "Changed description";
-        String requester = null;
-        String assignedTo = null;
-        Set< Comment > comments = new HashSet<Comment>();
-        Set< Attachment > attachments = new HashSet<Attachment>();
-        Map<String, String> extraParams = new HashMap<String, String>();
-        // Current date time
-        Date date = new Date();
-        Long lastModified = date.getTime();
-
 
         // Creating new ticket
         TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
