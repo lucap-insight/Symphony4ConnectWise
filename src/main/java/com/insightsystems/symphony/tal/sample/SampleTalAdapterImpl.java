@@ -245,7 +245,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
                     logger.info("syncTalTicket: Ticket has no ID and Third Party Link");
                 } else {
                     // Add extra parameter to not duplicate ticket in case it happens again
-                    System.out.println("Setting the connectionFailed parameter: true");
+                    logger.info("syncTalTicket: Setting the connectionFailed parameter to true");
                     if (talTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
                         // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
                         talTicket.getExtraParams().replace("connectionFailed","true");
@@ -432,7 +432,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
 
                 if (Objects.equals(requestResult, "Update Symphony")) {
                     // This means there is a CW value but no Symphony value
-                    logger.info("syncTalTicket: Updating Symphony using CW value");
+                    logger.info("syncTalTicket: Updating Symphony using ConnectWise value");
 
                     // Add comment saying ticket priority was changed
                     oldPriority = config.getPriorityMappingForThirdParty().get(talTicket.getPriority());
@@ -474,7 +474,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
             if (requestResult!= null) {
                 if (Objects.equals(requestResult, "Update Symphony")) {
                     // This means there is a CW value but no Symphony value
-                    logger.info("syncTalTicket: Updating Symphony using CW value");
+                    logger.info("syncTalTicket: Updating Symphony using ConnectWise value");
                     talTicket.setStatus(ConnectWiseValue);
                 } else {
                     if (!requestBody.isEmpty()) {
@@ -499,7 +499,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
             if (requestResult != null)  {
                 if (Objects.equals(requestResult, "Update Symphony")) {
                     // This means there is a CW value but no Symphony value
-                    logger.info("syncTalTicket: Updating Symphony using CW value");
+                    logger.info("syncTalTicket: Updating Symphony using ConnectWise value");
                     talTicket.setAssignedTo(ConnectWiseValue);
                 } else {
                     if (!requestBody.isEmpty()) {
@@ -617,7 +617,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
                         .build();
             }
         } catch (Exception e) {
-            logger.error("ConnectWiseAPICall: " + e.getMessage());
+            logger.error("ConnectWiseAPICall: Error building HttpRequest: " + e.getMessage());
             throw new TalAdapterSyncException(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
 
@@ -625,8 +625,10 @@ public class SampleTalAdapterImpl implements TalAdapter {
         HttpResponse<String> response = null;
         logger.info("ConnectWiseAPICall: Getting response");
         try {
+            // Send HTTP request
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (IOException | InterruptedException e) {
+            logger.error("ConnectWiseAPICall: HTTP request generated error: " + e.getMessage());
             if (response != null) {
                 throw new TalAdapterSyncException(e + " - HTTP request error",
                         HttpStatus.valueOf(response.statusCode()));
@@ -635,11 +637,12 @@ public class SampleTalAdapterImpl implements TalAdapter {
         }
 
         if (response != null && (response.statusCode() == 200 || response.statusCode() == 201)) {
-            logger.info("ConnectWiseAPICall: "+method+" call successful - HTTP Code:"+
+            logger.info("ConnectWiseAPICall: {} call successful - HTTP Code: {}",
+                    method,
                     response.statusCode());
         } else {
             // Log error
-            logger.error("ConnectWiseAPICall: {} call unsuccessful - HTTP Code: {}",
+            logger.error("ConnectWiseAPICall: {} call failed - HTTP Code: {}",
                     method,
                     response != null ? response.statusCode() : "not specified");
 
@@ -686,9 +689,9 @@ public class SampleTalAdapterImpl implements TalAdapter {
             ConnectWiseComments = ConnectWiseAPICall(url, "GET", null).getJSONArray("JSONArray");
         } catch (TalAdapterSyncException e) {
             logger.error("syncComments: Unable to retrieve comments from ConnectWise");
-            // FIXME: Recoverable
-            //throw e;
-            return;
+            // Could be recoverable - it's decided at the end of syncTalTicket method
+            throw e;
+
         }
 
         // Sync description - returns the comment with the description
@@ -754,7 +757,10 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 }
             }
 
-            if (commentNotInSymphony) {
+            // If comment is not in symphony, and it's not the description comment (if there is one)
+            if (commentNotInSymphony &&
+                    !(descriptionCW != null &&
+                     commentCW.getInt("id") == descriptionCW.getInt("id"))) {
                 logger.info("syncComments: ConnectWise comment not found in Symphony - Updating Symphony");
                 LocalDateTime commentDate = LocalDateTime.parse(commentCW.getString("dateCreated"),
                         ConnectWiseDateTimeFormatter);
@@ -840,6 +846,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 LocalDateTime commentDate = LocalDateTime.parse(comment.getString("dateCreated"),
                         ConnectWiseDateTimeFormatter);
 
+                // If there are any comments in the discussion tab, there is a description
                 if (descriptionCWDate == null) {
                     logger.info("syncDescription: Ticked description comment found");
                     descriptionCWDate = commentDate;
@@ -888,11 +895,13 @@ public class SampleTalAdapterImpl implements TalAdapter {
                 return null;
             }
         } else { // If ConnectWise has a description comment:
+
             // If Symphony does not have a description: use ConnectWise description
             if (talTicket.getDescription() == null) {
                 talTicket.setDescription(descriptionCW.getString("text"));
                 logger.info("syncDescription: Symphony description not found. Using description on ConnectWise");
             }
+
             // If CW description exists, and it's not the same as the one on Symphony:
             else if (!Objects.equals(descriptionCW.getString("text"), talTicket.getDescription())) {
                 // Needs to PATCH ConnectWise description
