@@ -2,7 +2,7 @@
  * Copyright (c) 2019 AVI-SPL Inc. All Rights Reserved.
  */
 
-package com.insightsystems.symphony.tal.sample;
+package com.insightsystems.symphony.tal;
 
 import java.io.IOException;
 import java.net.*;
@@ -21,6 +21,7 @@ import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
 import com.insightsystems.symphony.tal.mocks.MockTalConfigService;
 import com.insightsystems.symphony.tal.mocks.MockTalProxy;
+import com.insightsystems.symphony.tal.sample.TicketMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,12 +44,12 @@ import org.springframework.http.HttpStatus;
  * @author Symphony Dev Team<br> Created on 7 Dec 2018
  * @since 4.6
  */
-public class SampleTalAdapterImpl implements TalAdapter {
+public class TalAdapterImpl implements TalAdapter {
 
     /**
      * Logger instance
      */
-    private static final Logger logger = LoggerFactory.getLogger(SampleTalAdapterImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(TalAdapterImpl.class);
 
     /**
      * Instance of a TalConfigService, set by Symphony via {@link #setTalConfigService(TalConfigService)}
@@ -76,7 +77,7 @@ public class SampleTalAdapterImpl implements TalAdapter {
     /**
      * Default no-arg constructor
      */
-    public SampleTalAdapterImpl() {
+    public TalAdapterImpl() {
         /**
          * Uncomment following in order to use mocks instead of setter-injected objects
          * Warning: use for development purposes only!
