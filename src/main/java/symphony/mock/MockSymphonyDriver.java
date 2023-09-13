@@ -24,7 +24,7 @@ public class MockSymphonyDriver {
         // --- TEST TICKET UPDATE --- //
 
         // Get symphony ticket
-        TalTicket newTicket = Symphony.getTicket2();
+        TalTicket newTicket = Symphony.getTicket();
         System.out.println("MockSymphonyDriver: Created ticket: " + newTicket);
 
         // Symphony updates TAL

@@ -21,7 +21,6 @@ import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
 import com.insightsystems.symphony.tal.mocks.MockTalConfigService;
 import com.insightsystems.symphony.tal.mocks.MockTalProxy;
-import com.insightsystems.symphony.tal.sample.TicketMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -132,21 +131,21 @@ public class TalAdapterImpl implements TalAdapter {
     @Override
     public TalTicket syncTalTicket(TalTicket talTicket) throws TalAdapterSyncException {
         try {
+            System.out.println(talTicket);
 
             // map status, priorities, users to comply with 3rd party ticketing system
             try {
-                TicketMapper.mapSymphonyToThirdParty(talTicket, config);
+                TicketMapper.mapSymphonyToThirdParty(talTicket, config); //FIXME: Should return CWTicket
             } catch (NullPointerException e) {
                 logger.error("syncTalTicket: error mapping Ticket info to CW equivalent");
                 throw e;
             }
 
-
             // 1. make call to 3rd party ticketing system
 
             // Setup information to connect to ConnectWise API
             String url = null; // this will hold the url to access the ticket
-            JSONObject CWTicket = null; // This is the ConnectWise synced ticket
+            JSONObject CWTicket = null; // This is the ConnectWise synced ticket //FIXME: Turn into class
 
             // If the ConnectWise connection has been set using TalTicket's ThirdPartyLink
             // False if connection was set up using the ID or if a new ticket was created
@@ -187,10 +186,10 @@ public class TalAdapterImpl implements TalAdapter {
                     connectionByLink = true; // Connection was successful using ThirdPartyLink
                 } catch (Exception e) {
                     logger.error("syncTalTicket: Attempt failed - " + e.getMessage());
-                }
+                } //FIXME: exception should be thrown since there is a failure during ticket update ???
 
                 // If response is null API call resulted in error: try manually building url
-                if (CWTicket == null) {
+                if (CWTicket == null) { //FIXME: Perform
                     logger.info("syncTalTicket: Attempting API call using Third Party ID");
 
                     // Build url from config and ticket Third Party ID:

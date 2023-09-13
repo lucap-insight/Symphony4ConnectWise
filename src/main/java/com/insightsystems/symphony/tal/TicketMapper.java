@@ -2,7 +2,7 @@
  * Copyright (c) 2019 AVI-SPL Inc. All Rights Reserved.
  */
 
-package com.insightsystems.symphony.tal.sample;
+package com.insightsystems.symphony.tal;
 
 import java.util.Collections;
 import java.util.Map;
