@@ -57,3 +57,6 @@ pom.xml.releaseBackup
 pom.xml.versionsBackup
 pom.xml.next
 release.properties
+
+# Config Service
+**/MockTalConfigService*
