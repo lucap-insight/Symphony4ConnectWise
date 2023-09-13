@@ -1,5 +1,7 @@
 package com.insightsystems.symphony.tal;
 
+import com.avispl.symphony.api.tal.dto.Attachment;
+import com.avispl.symphony.api.tal.dto.Comment;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
@@ -91,8 +93,15 @@ public class ConnectWiseTicket {
      */
     private String requester;
 
-    // comments
-    private Set<ConnectWiseComment> Comments;
+    /**
+     * Ticket comments
+     */
+    private Set<Comment> Comments;
+
+    /**
+     * Ticket attachments
+     */
+    private Set<Attachment> Attachments;
 
 
     //---------------------------------//
@@ -323,7 +332,7 @@ public class ConnectWiseTicket {
      * Updates this ticket based on CWTicket.
      * Makes changes to CWTicket as necessary.
      *
-     * @param CWTicket
+     * @param CWTicket ticket with the updated information
      */
     public void update(ConnectWiseTicket CWTicket) {
 
@@ -426,7 +435,7 @@ public class ConnectWiseTicket {
         return assignee;
     }
 
-    public boolean setAssignee(String assignee) {
+    public boolean setAssignedTo(String assignee) {
         if (assignee.isBlank())
             return false;
         this.assignee = assignee;
@@ -444,17 +453,27 @@ public class ConnectWiseTicket {
         return true;
     }
 
-    public Set<ConnectWiseComment> getComments() {
+    public Set<Comment> getComments() {
         return Comments;
     }
 
-    public void setComments(Set<ConnectWiseComment> comments) {
+    public void setComments(Set<Comment> comments) {
         Comments = comments;
     }
 
-    public void addComment(ConnectWiseComment CWComment) {
+    public void addComment(Comment CWComment) {
         Comments.add(CWComment);
     }
+
+    public Set<Attachment> getAttachments() {
+        return Attachments;
+    }
+
+    public void setAttachments(Set<Attachment> attachments) {
+        Attachments = attachments;
+    }
+
+    public void addAttachment(Attachment CWAttachment) { Attachments.add(CWAttachment); }
 
     public TicketSystemConfig getConfig() {
         return config;
@@ -463,4 +482,6 @@ public class ConnectWiseTicket {
     public void setConfig(TicketSystemConfig config) {
         this.config = config;
     }
+
+
 }

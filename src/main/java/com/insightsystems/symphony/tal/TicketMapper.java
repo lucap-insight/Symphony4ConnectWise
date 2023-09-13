@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.avispl.symphony.api.tal.TalConfigService;
+import com.avispl.symphony.api.tal.dto.Attachment;
+import com.avispl.symphony.api.tal.dto.Comment;
 import com.avispl.symphony.api.tal.dto.TalTicket;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 
@@ -23,7 +25,7 @@ import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 public class TicketMapper {
 
     /**
-     * Converts a TAL ticket into appropriate representation for a Ticket System
+     * Converts a TAL ticket into a {@link ConnectWiseTicket}
      * and performs statuses/priorities/etc mapping.
      *
      * Note that the {@link TalTicket} model is used for both TAL and third-party tickets just to simplify the sample,
@@ -33,16 +35,21 @@ public class TicketMapper {
      * @param config adapter configuration
      * @return the mapped ticket
      */
-    public static TalTicket mapSymphonyToThirdParty(TalTicket ticket, TicketSystemConfig config)
+    public static ConnectWiseTicket mapSymphonyToThirdParty(TalTicket ticket, TicketSystemConfig config)
     {
-        mapTicketStatus(ticket, config);
-        mapTicketPriority(ticket, config);
-        mapRequestor(ticket, config);
-        mapAssignee(ticket, config);
-        mapCommentCreator(ticket, config);
-        mapAttachmentCreator(ticket, config);
+        ConnectWiseTicket CWTicket = new ConnectWiseTicket(
+                config, ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
+                ticket.getThirdPartyLink()
+        );
 
-        return ticket;
+        mapTicketStatus(ticket, CWTicket, config);
+        mapTicketPriority(ticket, CWTicket, config);
+        mapRequestor(ticket, CWTicket, config);
+        mapAssignee(ticket, CWTicket, config);
+        mapCommentCreator(ticket, CWTicket, config);
+        mapAttachmentCreator(ticket, CWTicket, config);
+
+        return CWTicket;
     }
 
     /**
@@ -50,13 +57,13 @@ public class TicketMapper {
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapTicketStatus(TalTicket ticket, TicketSystemConfig config) {
+    private static void mapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         String thirdPartyStatus = config.getStatusMappingForThirdParty().get(ticket.getStatus());
 
         if (thirdPartyStatus == null)
             return;
 
-        ticket.setStatus(thirdPartyStatus);
+        CWTicket.setStatus(thirdPartyStatus);
     }
 
     /**
@@ -64,13 +71,13 @@ public class TicketMapper {
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapTicketPriority(TalTicket ticket, TicketSystemConfig config) {
+    private static void mapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         String thirdPartyPriority = config.getPriorityMappingForThirdParty().get(ticket.getPriority());
 
         if (thirdPartyPriority == null)
             return;
 
-        ticket.setPriority(thirdPartyPriority);
+        CWTicket.setPriority(thirdPartyPriority);
     }
 
     /**
@@ -78,8 +85,8 @@ public class TicketMapper {
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapRequestor(TalTicket ticket, TicketSystemConfig config) {
-        ticket.setRequester(mapUser(ticket.getRequester(), config));
+    private static void mapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        CWTicket.setRequester(mapUser(ticket.getRequester(), config));
     }
 
     /**
@@ -87,20 +94,22 @@ public class TicketMapper {
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapAssignee(TalTicket ticket, TicketSystemConfig config) {
-        ticket.setAssignedTo(mapUser(ticket.getAssignedTo(), config));
+    private static void mapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        CWTicket.setAssignedTo(mapUser(ticket.getAssignedTo(), config));
     }
 
     /**
-     * Maps comment requestors from Symphony to 3rd party ticketing system
+     * Maps comment requesters from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapCommentCreator(TalTicket ticket, TicketSystemConfig config) {
+    private static void mapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         Optional.ofNullable(ticket.getComments())
                 .orElse(Collections.emptySet())
                 .stream()
-                .forEach(c -> c.setCreator(mapUser(c.getCreator(), config)));
+                .forEach(c -> CWTicket.addComment(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
+                        mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+
     }
 
     /**
@@ -108,11 +117,12 @@ public class TicketMapper {
      * @param ticket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void mapAttachmentCreator(TalTicket ticket, TicketSystemConfig config) {
+    private static void mapAttachmentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         Optional.ofNullable(ticket.getAttachments())
                 .orElse(Collections.emptySet())
                 .stream()
-                .forEach(c -> c.setCreator(mapUser(c.getCreator(), config)));
+                .forEach(c -> CWTicket.addAttachment(new Attachment(c.getSymphonyId(), c.getThirdPartyId(),
+                        mapUser(c.getCreator(), config), c.getName(), c.getLink(), c.getSize(), c.getLastModified())));
     }
 
     /**

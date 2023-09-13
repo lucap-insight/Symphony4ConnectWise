@@ -189,7 +189,7 @@ public class TalAdapterImpl implements TalAdapter {
                 } //FIXME: exception should be thrown since there is a failure during ticket update ???
 
                 // If response is null API call resulted in error: try manually building url
-                if (CWTicket == null) { //FIXME: Perform
+                if (CWTicket == null) { //FIXME: Perform some sort of verification on link
                     logger.info("syncTalTicket: Attempting API call using Third Party ID");
 
                     // Build url from config and ticket Third Party ID:
