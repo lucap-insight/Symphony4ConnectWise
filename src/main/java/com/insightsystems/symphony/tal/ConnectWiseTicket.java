@@ -329,6 +329,13 @@ public class ConnectWiseTicket {
 
     }
 
+    /**
+     * Posts this ticket to ConnectWise.
+     */
+    public void post() {
+
+    }
+
     // Update comments
 
     //
