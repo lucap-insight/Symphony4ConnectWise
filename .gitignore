@@ -59,4 +59,4 @@ pom.xml.next
 release.properties
 
 # Config Service
-**/MockTalConfigService*
+src/main/java/com/insightsystems/symphony/tal/mocks/MockTalConfigService.java
