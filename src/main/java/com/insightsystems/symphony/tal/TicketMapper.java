@@ -37,6 +37,7 @@ public class TicketMapper {
      */
     public static ConnectWiseTicket mapSymphonyToThirdParty(TalTicket ticket, TicketSystemConfig config)
     {
+        // Create new CWTicket
         ConnectWiseTicket CWTicket = new ConnectWiseTicket(
                 config, ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
                 ticket.getThirdPartyLink()
@@ -53,8 +54,30 @@ public class TicketMapper {
     }
 
     /**
+     * Converts a {@link ConnectWiseTicket} into a {@link TalTicket}
+     * and performs statuses/priorities/etc mapping.
+     *
+     * @param ticket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     * @return the mapped ticket
+     */
+    public static TalTicket mapThirdPartyToSymphony(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config)
+    {
+
+        remapTicketStatus(ticket, CWTicket, config);
+        remapTicketPriority(ticket, CWTicket, config);
+        remapRequestor(ticket, CWTicket, config);
+        remapAssignee(ticket, CWTicket, config);
+        remapCommentCreator(ticket, CWTicket, config);
+        remapAttachmentCreator(ticket, CWTicket, config);
+
+        return ticket;
+    }
+
+    /**
      * Maps ticket status from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -69,6 +92,7 @@ public class TicketMapper {
     /**
      * Maps ticket priority from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -83,6 +107,7 @@ public class TicketMapper {
     /**
      * Maps ticket requestor from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -92,6 +117,7 @@ public class TicketMapper {
     /**
      * Maps ticket assignee from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -101,6 +127,7 @@ public class TicketMapper {
     /**
      * Maps comment requesters from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -115,6 +142,7 @@ public class TicketMapper {
     /**
      * Maps attachment requestors from Symphony to 3rd party ticketing system
      * @param ticket ticket instance that needs to be mapped
+     * @param CWTicket ticket to map status to
      * @param config adapter configuration
      */
     private static void mapAttachmentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
@@ -141,5 +169,65 @@ public class TicketMapper {
             return userId;
 
         return thirdPartyUserId;
+    }
+
+    /**
+     * Maps ticket status from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
+    }
+
+    /**
+     * Maps ticket priority from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
+    }
+
+    /**
+     * Maps ticket requester from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
+    }
+
+    /**
+     * Maps ticket assignee from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
+    }
+
+    /**
+     * Maps comment requesters from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
+    }
+
+    /**
+     * Maps attachment requesters from ConnectWise to Symphony
+     * @param ticket ticket to map status to
+     * @param CWTicket ticket instance that needs to be mapped
+     * @param config adapter configuration
+     */
+    private static void remapAttachmentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+
     }
 }

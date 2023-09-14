@@ -1,10 +1,8 @@
 package com.insightsystems.symphony.tal;
 
-import com.avispl.symphony.api.tal.dto.Attachment;
-import com.avispl.symphony.api.tal.dto.Comment;
-import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
-import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
+import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import org.apache.commons.lang.NotImplementedException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -315,17 +313,19 @@ public class ConnectWiseTicket {
 
     /**
      * Creates and returns a new ConnectWiseTicket instance. Does not alter the current instance.
+     * Returns null if ticket was not found in ConnectWise.
      *
      * @return most updated version of this ConnectWiseTicket retrieved from ConnectWise
      */
-    public ConnectWiseTicket sync() {
+    public ConnectWiseTicket refresh() {
         // Instantiate synced ticket
         ConnectWiseTicket syncedCWTicket = new ConnectWiseTicket(
                 getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl());
 
         // TODO: Sync ticket bruh
+        throw new NotImplementedException();
 
-        return syncedCWTicket;
+        //return syncedCWTicket;
     }
 
     /**
@@ -334,15 +334,20 @@ public class ConnectWiseTicket {
      *
      * @param CWTicket ticket with the updated information
      */
-    public void update(ConnectWiseTicket CWTicket) {
-
+    public void patch(ConnectWiseTicket CWTicket) {
+        throw new NotImplementedException();
     }
 
     /**
      * Posts this ticket to ConnectWise.
      */
     public void post() {
+        // Has ticket failed before?
+            // logger.info("post: Ticket has failed before - not creating new ticket");
+            // throw new TalAdapterSyncException("Cannot sync TAL ticket");
 
+        // Post new ticket
+        throw new NotImplementedException();
     }
 
     // Update comments

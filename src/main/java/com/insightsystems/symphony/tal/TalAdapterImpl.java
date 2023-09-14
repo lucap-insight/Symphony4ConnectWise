@@ -133,15 +133,35 @@ public class TalAdapterImpl implements TalAdapter {
         try {
             System.out.println(talTicket);
 
+            ConnectWiseTicket CWTicket = null;
+
             // map status, priorities, users to comply with 3rd party ticketing system
             try {
-                TicketMapper.mapSymphonyToThirdParty(talTicket, config); //FIXME: Should return CWTicket
+                CWTicket = TicketMapper.mapSymphonyToThirdParty(talTicket, config); //FIXME: Should return CWTicket
             } catch (NullPointerException e) {
                 logger.error("syncTalTicket: error mapping Ticket info to CW equivalent");
                 throw e;
             }
 
             // 1. make call to 3rd party ticketing system
+            ConnectWiseTicket refreshedCWTicket = CWTicket.refresh();
+
+            // If CWTicket exists in CW
+            if (refreshedCWTicket != null) {
+                // Update it with the newest information
+                refreshedCWTicket.patch(CWTicket);
+
+                // Map ConnectWise ticket back to Symphony
+                TicketMapper.mapThirdPartyToSymphony(talTicket, refreshedCWTicket, config);
+            } else {
+                // Otherwise, create new ticket
+                CWTicket.post();
+                TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
+            }
+
+            return talTicket;
+
+
 
             // Setup information to connect to ConnectWise API
             String url = null; // this will hold the url to access the ticket
