@@ -15,11 +15,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
+import java.util.*;
 
 
 /**
@@ -118,6 +114,13 @@ public class ConnectWiseTicket {
     //---------------------------------//
     //* ---------- METHODS ---------- *//
     //---------------------------------//
+
+    public ConnectWiseTicket() {
+        setAttachments(new HashSet<>());
+        setComments(new HashSet<>());
+        setExtraParams(new HashMap<>());
+    }
+
     public ConnectWiseTicket(TicketSystemConfig config, String symphonyId, String symphonyLink, String id, String url, Map<String, String> extraParams) {
         // logger.info("Initializing ConnectWise ticket")
         setConfig(config);
@@ -126,6 +129,7 @@ public class ConnectWiseTicket {
         setId(id);
         setUrl(url);
         setExtraParams(extraParams);
+        setComments(new HashSet<>());
     }
 
     // FIXME: See if this is possible and/or needed
