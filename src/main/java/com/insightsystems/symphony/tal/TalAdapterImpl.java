@@ -180,7 +180,7 @@ public class TalAdapterImpl implements TalAdapter {
 
             return talTicket;
 
-
+            /*
 
             // Setup information to connect to ConnectWise API
             String url = null; // this will hold the url to access the ticket
@@ -557,6 +557,8 @@ public class TalAdapterImpl implements TalAdapter {
             // 4. return updated instance using "return statement" to the caller
             logger.info("synTalTicket: Synchronization complete");
             return talTicket;
+
+             */
 
         }
         catch (TalAdapterSyncException r) {
