@@ -357,6 +357,7 @@ public class ConnectWiseTicket {
                     temp_id = getUrl().substring(lastIndex + 1); // get ticket id from url
                     if (!Objects.equals(temp_id, getId())) { // if IDs don't match
                         setId(temp_id); // Update ticket id
+                        syncedCWTicket.setId(temp_id);
                     }
                 }
 
@@ -381,6 +382,7 @@ public class ConnectWiseTicket {
                 try {
                     syncedCWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(URL, "GET", null));
                     setUrl(URL);
+                    syncedCWTicket.setUrl(URL);
                 } catch (Exception e) {
                     logger.error("refresh: Attempt failed - " + e.getMessage());
                 }
@@ -405,23 +407,26 @@ public class ConnectWiseTicket {
             }
             // if there is a ticket it means that the API call was successful
             else {
-                logger.info("refresh: Attempt successful");
 
-                // Add extra parameter to show connection was successful (set connectionFailed to false)
-                if (getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
-                    // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                    getExtraParams().replace("connectionFailed","false");
-                }
-                // Set extra parameter to show connection was successful on the synced ticket as well
-                if (syncedCWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
-                    // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                    syncedCWTicket.getExtraParams().replace("connectionFailed","false");
-                }
+
             }
         }
 
         // TODO: GET comments on refresh
         if (syncedCWTicket != null) {
+            logger.info("refresh: Attempt successful");
+
+            // Add extra parameter to show connection was successful (set connectionFailed to false)
+            if (getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+                // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                getExtraParams().replace("connectionFailed","false");
+            }
+            // Set extra parameter to show connection was successful on the synced ticket as well
+            if (syncedCWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+                // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                syncedCWTicket.getExtraParams().replace("connectionFailed","false");}
+
+
             JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null).getJSONArray("JSONArray");
             setComments(jsonToCommentSet(jsonArray));
 
@@ -430,6 +435,8 @@ public class ConnectWiseTicket {
                     getComments()
                         .stream()
                         .min( Comparator.comparing(Comment::getLastModified) ).get() );
+
+            // TODO: Space to get ticket attachments as well
         }
 
         return syncedCWTicket;
@@ -445,6 +452,8 @@ public class ConnectWiseTicket {
         // Update Symphony ID and Link
         setSymphonyId(CWTicket.getSymphonyId());
         setSymphonyLink(CWTicket.getSymphonyLink());
+
+        // Create ticket in CW if it has failed before
 
         // HTTP PATCH
         // summary
@@ -486,7 +495,42 @@ public class ConnectWiseTicket {
     private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) { // TODO
         ConnectWiseTicket CWJsonTicket = new ConnectWiseTicket(getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl(), getExtraParams());
 
-        throw new NotImplementedException("jsonToConnectWiseTicket");
+        // summary
+        try {
+            CWJsonTicket.setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }
+
+        // status
+        try {
+            CWJsonTicket.setStatus(jsonObject.getJSONObject("status").getString("name"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: status/name not found on ConnectWise");
+        }
+
+        // priority
+        try {
+            CWJsonTicket.setPriority(jsonObject.getJSONObject("priority").getInt("id") + "");
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: priority/id not found on ConnectWise");
+        }
+
+        // assignee
+        try {
+            CWJsonTicket.setAssignedTo(jsonObject.getJSONObject("owner").getString("identifier"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: owner/identifier not found on ConnectWise");
+        }
+
+        // TODO: requester from ConnectWise
+        /*try {
+            CWJsonTicket.setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }*/
+
+        return CWJsonTicket;
     }
 
     /**
@@ -496,9 +540,23 @@ public class ConnectWiseTicket {
      * @return
      */
     private Set<Comment> jsonToCommentSet(JSONArray jsonArray) { // TODO
+        Set<Comment> JSONComments = new HashSet<>();
 
+        // for each ConnectWise comment:
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject JSONComment = jsonArray.getJSONObject(i);
+            /*TODO: Comment CWComment = new Comment(
+                    null,
+                    JSONComment.getInt("id") + "",
+                    //creator,
+                    JSONComment.getString("text"),
+                    //lastmodified
+            );*/
 
-        throw new NotImplementedException("jsonToCommentSet");
+            JSONComments.add(CWComment);
+        }
+
+        return JSONComments;
     }
 
 
