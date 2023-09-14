@@ -40,7 +40,7 @@ public class TicketMapper {
         // Create new CWTicket
         ConnectWiseTicket CWTicket = new ConnectWiseTicket(
                 config, ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
-                ticket.getThirdPartyLink()
+                ticket.getThirdPartyLink(), ticket.getExtraParams()
         );
 
         mapTicketStatus(ticket, CWTicket, config);
@@ -64,12 +64,14 @@ public class TicketMapper {
     public static TalTicket mapThirdPartyToSymphony(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config)
     {
 
+
         remapTicketStatus(ticket, CWTicket, config);
         remapTicketPriority(ticket, CWTicket, config);
         remapRequestor(ticket, CWTicket, config);
         remapAssignee(ticket, CWTicket, config);
         remapCommentCreator(ticket, CWTicket, config);
         remapAttachmentCreator(ticket, CWTicket, config);
+        ticket.setExtraParams(CWTicket.getExtraParams());
 
         return ticket;
     }

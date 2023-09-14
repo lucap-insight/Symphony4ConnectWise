@@ -133,6 +133,26 @@ public class TalAdapterImpl implements TalAdapter {
         try {
             System.out.println(talTicket);
 
+            // Confirm that credentials have been set up
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null ||
+                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null) {
+                String errorMessage = "ConnectWise API Credentials missing:";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null)
+                    errorMessage += " clientID";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
+                    errorMessage += " Authorization";
+                logger.error("syncTalTicket: " + errorMessage);
+                throw new NullPointerException(errorMessage);
+            }
+
+            // Warnings
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null) {
+                logger.warn("syncTalTicket: URL not setup on Config");
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+                logger.warn("syncTalTicket: API_PATH not setup on Config");
+            }
+
             ConnectWiseTicket CWTicket = null;
 
             // map status, priorities, users to comply with 3rd party ticketing system
@@ -143,14 +163,13 @@ public class TalAdapterImpl implements TalAdapter {
                 throw e;
             }
 
-            // 1. make call to 3rd party ticketing system
+            // 1. make call to ConnectWise and get live ticket data
             ConnectWiseTicket refreshedCWTicket = CWTicket.refresh();
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
                 // Update it with the newest information
                 refreshedCWTicket.patch(CWTicket);
-
                 // Map ConnectWise ticket back to Symphony
                 TicketMapper.mapThirdPartyToSymphony(talTicket, refreshedCWTicket, config);
             } else {
@@ -173,24 +192,6 @@ public class TalAdapterImpl implements TalAdapter {
 
             boolean createTicket = true; // If adapter needs to create ConnectWise ticket
             boolean connectionFailed = false; // If connection was attempted but failed
-
-            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null) {
-                logger.warn("syncTalTicket: URL not setup on Config");
-            }
-            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
-                logger.warn("syncTalTicket: API_PATH not setup on Config");
-            }
-
-            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null ||
-                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null) {
-                String errorMessage = "ConnectWise API Credentials missing:";
-                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null)
-                    errorMessage += " clientID";
-                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
-                    errorMessage += " Authorization";
-                logger.error("syncTalTicket: " + errorMessage);
-                throw new NullPointerException(errorMessage);
-            }
 
             // If ticket has Third Party ID and Third Party Link (already exists in ConnectWise)
             if (talTicket.getThirdPartyId() != null || talTicket.getThirdPartyLink() != null) {
@@ -242,7 +243,6 @@ public class TalAdapterImpl implements TalAdapter {
                         logger.info("syncTalTicket: Attempting to create new ticket");
                         connectionFailed = true;
                     }
-
                 }
                 // if response has value it means API call was successful
                 else {

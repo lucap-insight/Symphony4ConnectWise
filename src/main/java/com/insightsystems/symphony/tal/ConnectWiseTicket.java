@@ -14,6 +14,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -101,17 +102,23 @@ public class ConnectWiseTicket {
      */
     private Set<Attachment> Attachments;
 
+    /**
+     * extra parameters, dictionary of additional parameters in key-value form
+     */
+    private Map<String, String> extraParams;
+
 
     //---------------------------------//
     //* ---------- METHODS ---------- *//
     //---------------------------------//
-    public ConnectWiseTicket(TicketSystemConfig config, String symphonyId, String symphonyLink, String id, String url) {
+    public ConnectWiseTicket(TicketSystemConfig config, String symphonyId, String symphonyLink, String id, String url, Map<String, String> extraParams) {
         // logger.info("Initializing ConnectWise ticket")
         setConfig(config);
         setSymphonyId(symphonyId);
         setSymphonyLink(symphonyLink);
         setId(id);
         setUrl(url);
+        setExtraParams(extraParams);
     }
 
     // FIXME: See if this is possible and/or needed
@@ -312,20 +319,85 @@ public class ConnectWiseTicket {
 
 
     /**
-     * Creates and returns a new ConnectWiseTicket instance. Does not alter the current instance.
+     * Creates and returns a new ConnectWiseTicket instance with the newest ticket information from ConnectWise.
+     * Does not alter the current instance.
      * Returns null if ticket was not found in ConnectWise.
      *
-     * @return most updated version of this ConnectWiseTicket retrieved from ConnectWise
+     * @return most updated version of this ticket retrieved from ConnectWise
      */
-    public ConnectWiseTicket refresh() {
-        // Instantiate synced ticket
-        ConnectWiseTicket syncedCWTicket = new ConnectWiseTicket(
-                getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl());
+    public ConnectWiseTicket refresh() throws TalAdapterSyncException { // TODO: Finalize refresh method
+        // Declare synced ticket
+        ConnectWiseTicket syncedCWTicket = null;
 
-        // TODO: Sync ticket bruh
-        throw new NotImplementedException();
+        // GET ticket
+        if (this.getId() != null || this.getUrl() != null) {
+            logger.info("refresh: Ticket has ID or Third Party link");
 
-        //return syncedCWTicket;
+            // Attempt connection through URL
+            logger.info("refresh: Attempting API call using Third Party Link");
+            try {
+                syncedCWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(getUrl(), "GET", null));
+                // FIXME: remove? -> connectionByLink = true; // Connection was successful using ThirdPartyLink
+            } catch (Exception e) {
+                logger.error("refresh: Attempt failed - " + e.getMessage());
+            } //FIXME: exception should be thrown since there is a failure during ticket update ???
+
+            // If response is null API call resulted in error: try manually building url
+            if (syncedCWTicket == null) { //FIXME: Perform some sort of verification on link
+                logger.info("refresh: Attempting API call using Third Party ID");
+
+                // Build url from config and ticket Third Party ID:
+                // URL example: "https://connect.myCompany.com.au"
+                // API_PATH example: "/v4_6_release/apis/3.0/service/tickets"
+                // ThirdPartyId example: "187204"
+                // url example: "https://connect.myCompany.com.au/v4_6_release/apis/3.0/service/tickets/187204"
+
+                url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                        config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
+                        "/" + getId();
+
+                try {
+                    syncedCWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(url, "GET", null));
+                } catch (Exception e) {
+                    logger.error("refresh: Attempt failed - " + e.getMessage());
+                }
+            }
+
+            // If an attempt has been made but still no connection, set connection failed
+            if (syncedCWTicket == null) {
+                // Log error
+                logger.error("refresh: Both API attempts unsuccessful");
+
+                // Check if a connectionFailed already happen to prevent creating multiple tickets
+                if (Objects.equals(getExtraParams().get("connectionFailed"), "true")) {
+                    logger.info("synTalTicket: Ticket has failed before - not creating new ticket");
+                    throw new TalAdapterSyncException("Cannot sync TAL ticket");
+                } else {
+                    // If it's the first time failing add connectionFailed parameter
+                    if (getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
+                        // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                        getExtraParams().replace("connectionFailed","true");
+                    }
+                }
+            }
+            // if there is a ticket it means that the API call was successful
+            else {
+                logger.info("refresh: Attempt successful");
+
+                // Add extra parameter to show connection was successful (set connectionFailed to false)
+                if (getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+                    // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                    getExtraParams().replace("connectionFailed","false");
+                }
+            }
+        }
+
+        // TODO: GET comments on refresh
+        if (syncedCWTicket != null) {
+
+        }
+
+        return syncedCWTicket;
     }
 
     /**
@@ -334,17 +406,39 @@ public class ConnectWiseTicket {
      *
      * @param CWTicket ticket with the updated information
      */
-    public void patch(ConnectWiseTicket CWTicket) {
+    public void patch(ConnectWiseTicket CWTicket) { // TODO: Patch tickets
+        // Update Symphony ID and Link
+        setSymphonyId(CWTicket.getSymphonyId());
+        setSymphonyLink(CWTicket.getSymphonyLink());
+
+        // HTTP PATCH
+        // summary
+        // status
+        // priority
+        // assignee
+        // requester
+
+        // Description
+
+        // Comments
+
+        // Attachments
+
         throw new NotImplementedException();
     }
 
     /**
      * Posts this ticket to ConnectWise.
      */
-    public void post() {
+    public void post() throws TalAdapterSyncException { // TODO: Post ticket method
         // Has ticket failed before?
-            // logger.info("post: Ticket has failed before - not creating new ticket");
-            // throw new TalAdapterSyncException("Cannot sync TAL ticket");
+        // Check if a connectionFailed already happen to prevent creating multiple tickets
+        if (Objects.equals(getExtraParams().get("connectionFailed"), "true")) {
+            logger.info("post: Ticket has failed before - not creating new ticket");
+            throw new TalAdapterSyncException("Cannot sync TAL ticket");
+        } else {
+            logger.info("post: Attempting to create new ticket");
+        }
 
         // Post new ticket
         throw new NotImplementedException();
@@ -353,6 +447,20 @@ public class ConnectWiseTicket {
     // Update comments
 
     //
+
+
+    /**
+     * Converts an HTTP response in JSON format to a ConnectWiseTicket object
+     *
+     * @param jsonObject Ticket ConnectWise API response
+     * @return converted ticket
+     */
+    private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) { // TODO
+        ConnectWiseTicket CWJsonTicket = new ConnectWiseTicket(getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl(), getExtraParams());
+        
+        throw new NotImplementedException();
+    }
+
 
 
 
@@ -489,4 +597,11 @@ public class ConnectWiseTicket {
     }
 
 
+    public Map<String, String> getExtraParams() {
+        return extraParams;
+    }
+
+    public void setExtraParams(Map<String, String> extraParams) {
+        this.extraParams = extraParams;
+    }
 }
