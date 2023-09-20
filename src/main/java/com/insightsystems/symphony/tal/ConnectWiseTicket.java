@@ -462,15 +462,15 @@ public class ConnectWiseTicket {
         // HTTP PATCH
         String patchRequest = "";
         // summary
-        patchRequest += UpdateSummary(CWTicket);
+        patchRequest += UpdateSummary(CWTicket, patchRequest);
         // status
-        patchRequest += UpdateStatus(CWTicket);
+        patchRequest += UpdateStatus(CWTicket, patchRequest);
         // priority
-        patchRequest += UpdatePriority(CWTicket);
+        patchRequest += UpdatePriority(CWTicket, patchRequest);
         // assignee
-        patchRequest += UpdateAssignee(CWTicket);
+        patchRequest += UpdateAssignee(CWTicket, patchRequest);
         // requester
-        //patchRequest += UpdateRequester(CWTicket);
+        //patchRequest += UpdateRequester(CWTicket) + (patchRequest.isEmpty()? "" : ",");
 
         if (!patchRequest.isEmpty()) {
             patchRequest = "[" + patchRequest + "]"; // Final request formatting
@@ -486,9 +486,10 @@ public class ConnectWiseTicket {
         }
 
         // Description
-
+        updateDescription(CWTicket);
 
         // Comments
+
 
         // Attachments
         // Space for code
@@ -496,13 +497,16 @@ public class ConnectWiseTicket {
         throw new NotImplementedException();
     }
 
+
     /**
      * Creates patch string to Update ConnectWise value.
      * Updates Symphony if necessary.
+     *
      * @param SymphonyTicket Symphony updated ticket
+     * @param patchRequest
      * @return PATCH string
      */
-    private String UpdateSummary(ConnectWiseTicket SymphonyTicket) {
+    private String UpdateSummary(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
         // If summaries are not the same
@@ -530,16 +534,22 @@ public class ConnectWiseTicket {
             }
         }
 
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
         return returnVal;
     }
 
     /**
      * Creates patch string to Update ConnectWise value
      * Updates Symphony if necessary.
+     *
      * @param SymphonyTicket Symphony updated ticket
+     * @param patchRequest
      * @return PATCH string
      */
-    private String UpdateStatus(ConnectWiseTicket SymphonyTicket) {
+    private String UpdateStatus(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
         if (!Objects.equals( getStatus(), SymphonyTicket.getStatus() )) {
@@ -556,16 +566,22 @@ public class ConnectWiseTicket {
             }
         }
 
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
         return returnVal;
     }
 
     /**
      * Creates patch string to Update ConnectWise value
      * Updates Symphony if necessary.
+     *
      * @param SymphonyTicket Symphony updated ticket
+     * @param patchRequest
      * @return PATCH string
      */
-    private String UpdatePriority(ConnectWiseTicket SymphonyTicket) {
+    private String UpdatePriority(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
         if (!Objects.equals( getPriority(), SymphonyTicket.getPriority() )) {
@@ -582,16 +598,22 @@ public class ConnectWiseTicket {
             }
         }
 
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
         return returnVal;
     }
 
     /**
      * Creates patch string to Update ConnectWise value
      * Updates Symphony if necessary.
+     *
      * @param SymphonyTicket Symphony updated ticket
+     * @param patchRequest
      * @return PATCH string
      */
-    private String UpdateAssignee(ConnectWiseTicket SymphonyTicket) {
+    private String UpdateAssignee(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
         if (!Objects.equals( getAssignee(), SymphonyTicket.getAssignee() )) {
@@ -608,7 +630,44 @@ public class ConnectWiseTicket {
             }
         }
 
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
         return returnVal;
+    }
+
+    /**
+     * Updates ConnectWise description based on SymphonyTicket
+     * @param SymphonyTicket
+     */
+    private void updateDescription(ConnectWiseTicket SymphonyTicket) throws TalAdapterSyncException {
+        // Check if CW Comment exists
+        if (getDescription() != null)
+        {
+            // Compare texts
+            if (SymphonyTicket.getDescription() != null &&
+                    !Objects.equals(getDescription(), SymphonyTicket.getDescription()))
+            {
+                // Update
+                getDescription().setText( SymphonyTicket.getDescription().getText() );
+                // PATCH
+                String body = " {\n" +
+                        "        \"op\": \"replace\",\n" +
+                        "        \"path\": \"text\",\n" +
+                        "        \"value\": \"" + SymphonyTicket.getDescription().getText() + "\"\n" +
+                        "    }\n";
+                logger.info("updateDescription: Attempting PATCH request");
+                ConnectWiseAPICall(url + "/notes/" + getDescription().getThirdPartyId(),
+                        "PATCH", body);
+            }
+            else // Fix Symphony?
+            {
+                SymphonyTicket.setDescription( getDescription() );
+            }
+        }
+        // Otherwise
+            // POST comment ?
     }
 
     /**

@@ -38,7 +38,7 @@ public class MockSymphony{
         // Setting parameters for new ticket
         String symphonyId = "1067758";
         String symphonyLink = "1067758";
-        String thirdPartyId = "189370";//"187562";
+        String thirdPartyId = "187562";
         String thirdPartyLink = null;
         String customerId = "";
         String priority = "Minor";
