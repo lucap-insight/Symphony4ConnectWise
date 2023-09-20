@@ -136,7 +136,7 @@ public class TicketMapper {
         Optional.ofNullable(ticket.getComments())
                 .orElse(Collections.emptySet())
                 .stream()
-                .forEach(c -> CWTicket.addComment(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
+                .forEach(c -> CWTicket.addComment(new ConnectWiseComment(c.getSymphonyId(), c.getThirdPartyId(),
                         mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
 
     }

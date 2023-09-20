@@ -15,6 +15,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 
@@ -73,7 +77,7 @@ public class ConnectWiseTicket {
     /**
      * Ticket description in a ConnectWise comment
      */
-    private Comment description;
+    private ConnectWiseComment description;
 
     /**
      * Ticket status
@@ -98,7 +102,7 @@ public class ConnectWiseTicket {
     /**
      * Ticket comments
      */
-    private Set<Comment> Comments;
+    private Set<ConnectWiseComment> Comments;
 
     /**
      * Ticket attachments
@@ -395,7 +399,7 @@ public class ConnectWiseTicket {
 
                 // Check if a connectionFailed already happen to prevent creating multiple tickets
                 if (Objects.equals(getExtraParams().get("connectionFailed"), "true")) {
-                    logger.info("synTalTicket: Ticket has failed before - not creating new ticket");
+                    logger.info("refresh: Ticket has failed before - not creating new ticket");
                     throw new TalAdapterSyncException("Cannot sync TAL ticket");
                 } else {
                     // If it's the first time failing add connectionFailed parameter
@@ -404,11 +408,6 @@ public class ConnectWiseTicket {
                         getExtraParams().replace("connectionFailed","true");
                     }
                 }
-            }
-            // if there is a ticket it means that the API call was successful
-            else {
-
-
             }
         }
 
@@ -424,8 +423,8 @@ public class ConnectWiseTicket {
             // Set extra parameter to show connection was successful on the synced ticket as well
             if (syncedCWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
                 // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                syncedCWTicket.getExtraParams().replace("connectionFailed","false");}
-
+                syncedCWTicket.getExtraParams().replace("connectionFailed","false");
+            }
 
             JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null).getJSONArray("JSONArray");
             setComments(jsonToCommentSet(jsonArray));
@@ -434,7 +433,8 @@ public class ConnectWiseTicket {
             setDescription(
                     getComments()
                         .stream()
-                        .min( Comparator.comparing(Comment::getLastModified) ).get() );
+                        .filter(ConnectWiseComment::isDescriptionFlag)
+                        .min( Comparator.comparing(ConnectWiseComment::getLastModified) ).get() );
 
             // TODO: Space to get ticket attachments as well
         }
@@ -537,21 +537,32 @@ public class ConnectWiseTicket {
      * Converts a JSON array of ConnectWise comments into a set of {@link Comment}s
      *
      * @param jsonArray
-     * @return
+     * @return Set of Comments of the ConnectWise Comments
      */
-    private Set<Comment> jsonToCommentSet(JSONArray jsonArray) { // TODO
-        Set<Comment> JSONComments = new HashSet<>();
+    private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) { // TODO
+        Set<ConnectWiseComment> JSONComments = new HashSet<>();
+        DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
 
         // for each ConnectWise comment:
         for (int i = 0; i < jsonArray.length(); i++) {
             JSONObject JSONComment = jsonArray.getJSONObject(i);
-            /*TODO: Comment CWComment = new Comment(
+
+            // Parse date
+            LocalDateTime commentDate = LocalDateTime.parse(JSONComment.getString("dateCreated"),
+                    ConnectWiseDateTimeFormatter);
+            ZonedDateTime zdt = ZonedDateTime.of(commentDate, ZoneId.systemDefault());
+            long lastModified = zdt.toInstant().toEpochMilli();
+
+            ConnectWiseComment CWComment = new ConnectWiseComment(
                     null,
                     JSONComment.getInt("id") + "",
-                    //creator,
+                    JSONComment.getString("createdBy"),
                     JSONComment.getString("text"),
-                    //lastmodified
-            );*/
+                    lastModified,
+                    JSONComment.getBoolean("detailDescriptionFlag"),
+                    JSONComment.getBoolean("internalAnalysisFlag"),
+                    JSONComment.getBoolean("resolutionFlag")
+            );
 
             JSONComments.add(CWComment);
         }
@@ -623,11 +634,11 @@ public class ConnectWiseTicket {
         return status;
     }
 
-    public Comment getDescription() {
+    public ConnectWiseComment getDescription() {
         return description;
     }
 
-    public void setDescription(Comment description) {
+    public void setDescription(ConnectWiseComment description) {
         this.description = description;
     }
 
@@ -671,15 +682,15 @@ public class ConnectWiseTicket {
         return true;
     }
 
-    public Set<Comment> getComments() {
+    public Set<ConnectWiseComment> getComments() {
         return Comments;
     }
 
-    public void setComments(Set<Comment> comments) {
+    public void setComments(Set<ConnectWiseComment> comments) {
         Comments = comments;
     }
 
-    public void addComment(Comment CWComment) {
+    public void addComment(ConnectWiseComment CWComment) {
         Comments.add(CWComment);
     }
 
