@@ -18,6 +18,10 @@ public class ConnectWiseComment {
 
     private boolean resolutionFlag;
 
+    public ConnectWiseComment(String text) {
+        setText(text);
+    }
+
     public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, long lastModified,
                               boolean descriptionFlag, boolean internalFlag, boolean resolutionFlag) {
         setSymphonyId(symphonyId);
