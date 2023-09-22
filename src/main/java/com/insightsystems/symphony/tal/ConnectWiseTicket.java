@@ -489,6 +489,7 @@ public class ConnectWiseTicket {
         updateDescription(CWTicket);
 
         // Comments
+        updateComments(CWTicket);
 
 
         // Attachments
@@ -649,8 +650,9 @@ public class ConnectWiseTicket {
             if (SymphonyTicket.getDescription() != null &&
                     !Objects.equals(getDescription(), SymphonyTicket.getDescription()))
             {
-                // Update
+                // Update text and Symphony ID
                 getDescription().setText( SymphonyTicket.getDescription().getText() );
+                getDescription().setSymphonyId( SymphonyTicket.getSymphonyId() );
                 // PATCH
                 String body = " {\n" +
                         "        \"op\": \"replace\",\n" +
@@ -665,9 +667,58 @@ public class ConnectWiseTicket {
             {
                 SymphonyTicket.setDescription( getDescription() );
             }
+        } else {
+            // If CW does not have a description comment, create one
+            logger.info("updateDescription: ConnectWise description comment not found. Creating new comment");
+            String requestBody = "{\n" +
+                    "    \"text\" : \"" + SymphonyTicket.getDescription() + "\",\n" +
+                    "    \"detailDescriptionFlag\": true" + // Set to default internal notes
+                    (SymphonyTicket.getRequester() != null ? // make sure ticket requester is not null
+                            "    ,\n" +
+                                    "    \"member\": {\n" +
+                                    "        \"identifier\": \"" + SymphonyTicket.getRequester() + "\"\n" +
+                                    "    }\n"
+                            : "\n") +
+                    "}";
+            try {
+                ConnectWiseAPICall(url + "/notes", "POST", requestBody);
+            } catch (TalAdapterSyncException e) {
+                logger.error("syncDescription: CW API Call error - unable to sync description. Http error code: {}",
+                        e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
+            }
         }
-        // Otherwise
-            // POST comment ?
+    }
+
+    /**
+     * Updates ConnectWise comments based on SymphonyTicket
+     * @param SymphonyTicket ticket with updated Symphony information
+     */
+    private void updateComments(ConnectWiseTicket SymphonyTicket) {
+        // Go for every Symphony ticket
+        Set<ConnectWiseComment> ticketsToPost = new HashSet<>();
+        Iterator<ConnectWiseComment> itr = SymphonyTicket.getComments().iterator();
+        while ( itr.hasNext() ) {
+            ConnectWiseComment SymphonyComment = itr.next();
+            boolean ticketFound = false;
+
+            // Check if ticket exists in ConnectWise
+            for (ConnectWiseComment CWComment : getComments()) {
+                // If it exists and it's not the description: update CW ticket
+                if (SymphonyComment.getThirdPartyId() != null &&
+                        !Objects.equals( SymphonyComment.getThirdPartyId(), getDescription().getThirdPartyId() ) &&
+                        Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) {
+                    ticketFound = true;
+                    // API call
+                }
+            }
+
+            if (!ticketFound)
+                ticketsToPost.add(SymphonyComment);
+        }
+
+        for ( ConnectWiseComment CWComment : ticketsToPost ) {
+            // POST Ticket
+        }
     }
 
     /**
@@ -679,11 +730,6 @@ public class ConnectWiseTicket {
         // Post new ticket
         throw new NotImplementedException("post");
     }
-
-    // Update comments
-
-    //
-
 
     /**
      * Converts an HTTP response in JSON format to a ConnectWiseTicket object
