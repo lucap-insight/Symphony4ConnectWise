@@ -136,102 +136,6 @@ public class ConnectWiseTicket {
         setComments(new HashSet<>());
     }
 
-    // FIXME: See if this is possible and/or needed
-    /*
-    static public JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
-        // Optional: Formalize input error checking on ConnectWiseAPICall
-
-        // FIXME: What do I do with this? Where should I get this information from? How does CWTicket makes API calls?
-        String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
-        String authorization = config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD);
-
-        if (clientID == null || authorization == null) {
-            logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
-            throw new NullPointerException("Error retrieving client ID and/or authorization. Null value encountered");
-        }
-
-        if (url == null) {
-            logger.error("ConnectWiseAPICall: URL cannot be null");
-            throw new NullPointerException("URL for API call cannot be null");
-        }
-
-        HttpClient client = HttpClient.newHttpClient();
-        HttpRequest request = null;
-
-        try {
-            if (requestBody != null) {
-                request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .method(method, HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
-                        .header("clientID", clientID)
-                        .header("Authorization", authorization)
-                        .build();
-            } else if (Objects.equals(method, "GET")) {
-                request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .header("Content-Type", "application/json")
-                        .header("clientID", clientID)
-                        .header("Authorization", authorization)
-                        .build();
-            }
-        } catch (Exception e) {
-            logger.error("ConnectWiseAPICall: Error building HttpRequest: " + e.getMessage());
-            throw new TalAdapterSyncException(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-
-        // Response
-        HttpResponse<String> response = null;
-        logger.info("ConnectWiseAPICall: Getting response");
-        try {
-            // Send HTTP request
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException | InterruptedException e) {
-            logger.error("ConnectWiseAPICall: HTTP request generated error: " + e.getMessage());
-            if (response != null) {
-                throw new TalAdapterSyncException(e + " - HTTP request error",
-                        HttpStatus.valueOf(response.statusCode()));
-            } else // Not recoverable. Without a response we can't be sure sending another request will fix it
-                throw new TalAdapterSyncException(e + " - HTTP request error");
-        }
-
-        if (response != null && (response.statusCode() == 200 || response.statusCode() == 201)) {
-            logger.info("ConnectWiseAPICall: {} call successful - HTTP Code: {}",
-                    method,
-                    response.statusCode());
-        } else {
-            // Log error
-            logger.error("ConnectWiseAPICall: {} call failed - HTTP Code: {}",
-                    method,
-                    response != null ? response.statusCode() : "not specified");
-
-            if (response != null && response.statusCode() == 408) { // Re-try time-out calls
-                // This will turn into a recoverable exception
-                throw new TalAdapterSyncException("ConnectWiseAPICall: request timed-out", HttpStatus.REQUEST_TIMEOUT);
-            }
-            throw new TalAdapterSyncException(method + " Request error",
-                    response != null ? HttpStatus.valueOf(response.statusCode()) : null);
-        }
-
-        JSONObject jsonObject;
-        try {
-            //System.out.println(response.body());
-            jsonObject = new JSONObject(response.body());
-        } catch (JSONException e) {
-            try {
-                // It is possible that the response is a JSON array, so it is put in a JSON object under JSONArray
-                jsonObject = new JSONObject("{ \"JSONArray\" : " + response.body() + "}");
-            } catch (JSONException e2) {
-                // If it is also not an Array: give up and report error
-                logger.error("ConnectWiseAPICall: error parsing content to JSON - " + e2);
-                logger.error("ConnectWiseAPICall: API call object: " + response.request());
-                return null;
-            }
-        }
-        return jsonObject;
-    }
-    */
-
     /**
      * Performs an HTTP request call to ConnectWise API using credentials set in config
      * @param url the HTTP request URI
@@ -341,7 +245,7 @@ public class ConnectWiseTicket {
      * @return most updated version of this ticket retrieved from ConnectWise
      * @throws TalAdapterSyncException if refresh fails and has failed before
      */
-    public ConnectWiseTicket refresh() throws TalAdapterSyncException { // TODO: Finalize refresh method
+    public ConnectWiseTicket refresh() throws TalAdapterSyncException {
         // Declare synced ticket
         ConnectWiseTicket syncedCWTicket = null;
 
@@ -366,7 +270,7 @@ public class ConnectWiseTicket {
                 }
 
             } catch (Exception e) {
-                logger.error("refresh: Attempt failed - " + e.getMessage());
+                logger.error("refresh: Attempt failed");
             }
 
             // If response is null API call resulted in error: try manually building url
@@ -388,7 +292,7 @@ public class ConnectWiseTicket {
                     setUrl(URL);
                     syncedCWTicket.setUrl(URL);
                 } catch (Exception e) {
-                    logger.error("refresh: Attempt failed - " + e.getMessage());
+                    logger.error("refresh: Attempt failed");
                 }
             }
 
@@ -413,7 +317,7 @@ public class ConnectWiseTicket {
 
         // TODO: GET comments on refresh
         if (syncedCWTicket != null) {
-            logger.info("refresh: Attempt successful");
+            logger.info("refresh: successfully refreshed ticket");
 
             // Add extra parameter to show connection was successful (set connectionFailed to false)
             if (getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
@@ -426,21 +330,27 @@ public class ConnectWiseTicket {
                 syncedCWTicket.getExtraParams().replace("connectionFailed","false");
             }
 
+            logger.info("refresh: Attempting to retrieve comments");
             JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null).getJSONArray("JSONArray");
-            setComments(jsonToCommentSet(jsonArray));
+            syncedCWTicket.setComments(jsonToCommentSet(jsonArray));
 
             // Get description from comments
-            Optional<ConnectWiseComment> oldestDescriptionComment = getComments()
+            Optional<ConnectWiseComment> oldestDescriptionComment = syncedCWTicket.getComments()
                     .stream()
                     .filter(ConnectWiseComment::isDescriptionFlag)
                     .min( Comparator.comparing(ConnectWiseComment::getLastModified));
             // Set description
             if (oldestDescriptionComment.isPresent()) {
+                logger.info("refresh: tiket description found");
                 ConnectWiseComment description = oldestDescriptionComment.get();
-                setDescription(description);
+                syncedCWTicket.setDescription(description);
+            } else {
+                logger.info("Ticket description not found");
             }
 
             // TODO: Space to get ticket attachments as well
+        } else {
+            logger.info("refresh: Ticket not synced");
         }
 
         return syncedCWTicket;
@@ -452,7 +362,7 @@ public class ConnectWiseTicket {
      *
      * @param CWTicket ticket with the updated information
      */
-    public void patch(ConnectWiseTicket CWTicket) throws TalAdapterSyncException { // TODO: Patch tickets
+    public void patch(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // Update Symphony ID and Link
         setSymphonyId(CWTicket.getSymphonyId());
         setSymphonyLink(CWTicket.getSymphonyLink());
@@ -470,7 +380,7 @@ public class ConnectWiseTicket {
         // assignee
         patchRequest += UpdateAssignee(CWTicket, patchRequest);
         // requester
-        //patchRequest += UpdateRequester(CWTicket) + (patchRequest.isEmpty()? "" : ",");
+        // TODO: patchRequest += UpdateRequester(CWTicket, patchRequest);
 
         if (!patchRequest.isEmpty()) {
             patchRequest = "[" + patchRequest + "]"; // Final request formatting
@@ -494,9 +404,78 @@ public class ConnectWiseTicket {
 
         // Attachments
         // Space for code
-
-        throw new NotImplementedException();
     }
+
+    /**
+     * Posts this ticket to ConnectWise.
+     */
+    public void post() throws TalAdapterSyncException { // TODO: Post ticket method
+        // CHANGE SUMMARY IF TICKET HAS FAILED
+        if (getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
+            Objects.equals(getExtraParams().get("connectionFailed"), "true")) { // If it's true
+            setSummary(getSummary() + " - CONNECTION FAILED");
+        }
+
+        // Create new ticket on ConnectWise
+        logger.info("post: Attempting to create ticket on ConnectWise");
+
+        // Check if URL and API_PATH are not null
+        if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+            logger.error("post: URL or API_PATH not setup on Config");
+            throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config");
+        }
+
+        setUrl( config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) );
+
+        String requestBody = "{\n" +
+                "    \"summary\" : \"" + getSummary() + "\",\n" +
+                "    \"board\" : {\n" +
+                "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
+                "    },\n" +
+                "    \"company\": {\n" +
+                "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
+                "    },\n" +
+                "    \"priority\" : {\n" +
+                "        \"id\": "+ getPriority() +"\n" +
+                "    },\n" +
+                //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
+                "}";
+
+        // Attempt creating ticket
+        ConnectWiseTicket CWTicket= null;
+        try {
+            logger.info("post: Attempting to POST ticket on ConnectWise");
+            CWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(url, "POST", requestBody));
+        }
+        // I can catch any exception because there is already error handling in the ConnectWiseAPICall method
+        catch (Exception e) {
+            logger.error("post: Unable to POST ticket - {}", e.getMessage());
+            throw e;
+        }
+
+        // Setting URL to proper value with ticket id
+        if (CWTicket != null) {
+            logger.info("post: setting TalTicket third party id");
+            setUrl( getUrl() + "/" + CWTicket.getId() );
+            setId(CWTicket.getId());
+        }
+
+        // Adding initial priority comment
+        ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
+                String.format("Initial ticket priority: %s",
+                        config.getPriorityMappingForThirdParty().get(getPriority())),
+                null);
+        addComment(initialPriorityComment);
+
+        CWTicket.patch(this);
+    }
+
+
+    //----------------------------------------//
+    //* ---------- HELPER METHODS ---------- *//
+    //----------------------------------------//
 
 
     /**
@@ -640,7 +619,7 @@ public class ConnectWiseTicket {
 
     /**
      * Updates ConnectWise description based on SymphonyTicket
-     * @param SymphonyTicket
+     * @param SymphonyTicket Ticket coming from Symphony with most updated information.
      */
     private void updateDescription(ConnectWiseTicket SymphonyTicket) throws TalAdapterSyncException {
         // Check if CW Comment exists
@@ -650,15 +629,15 @@ public class ConnectWiseTicket {
             if (SymphonyTicket.getDescription() != null &&
                     !Objects.equals(getDescription(), SymphonyTicket.getDescription()))
             {
-                // Update text and Symphony ID
+                // If not equal: Update text and Symphony ID
                 getDescription().setText( SymphonyTicket.getDescription().getText() );
                 getDescription().setSymphonyId( SymphonyTicket.getSymphonyId() );
                 // PATCH
-                String body = " {\n" +
+                String body = "[ {\n" +
                         "        \"op\": \"replace\",\n" +
                         "        \"path\": \"text\",\n" +
                         "        \"value\": \"" + SymphonyTicket.getDescription().getText() + "\"\n" +
-                        "    }\n";
+                        "    }]";
                 logger.info("updateDescription: Attempting PATCH request");
                 try{
                     ConnectWiseAPICall(url + "/notes/" + getDescription().getThirdPartyId(),
@@ -671,15 +650,17 @@ public class ConnectWiseTicket {
             }
             else
             {
-                // Fix symphony
-                if (SymphonyTicket.getDescription() == null)
+                // If they are equal or symphony doesn't exist:
+                if (SymphonyTicket.getDescription() == null) // but sy
                     SymphonyTicket.setDescription( getDescription() );
+                else
+                    getDescription().setSymphonyId(SymphonyTicket.getDescription().getSymphonyId() );
             }
         } else {
             // If CW does not have a description comment, create one
             logger.info("updateDescription: ConnectWise description comment not found. Creating new comment");
             String requestBody = "{\n" +
-                    "    \"text\" : \"" + SymphonyTicket.getDescription() + "\",\n" +
+                    "    \"text\" : \"" + SymphonyTicket.getDescription().getText() + "\",\n" +
                     "    \"detailDescriptionFlag\": true" + // Set to default internal notes
                     (SymphonyTicket.getRequester() != null ? // make sure ticket requester is not null
                             "    ,\n" +
@@ -689,16 +670,15 @@ public class ConnectWiseTicket {
                             : "\n") +
                     "}";
             try {
+                logger.info("updateDescription: Attempting POST request");
                 JSONObject newDescription = ConnectWiseAPICall(url + "/notes", "POST", requestBody);
                 AddJSONDescription(newDescription);
             } catch (TalAdapterSyncException e) {
-                logger.error("syncDescription: CW API Call error - unable to sync description. Http error code: {}",
+                logger.error("updateDescription: CW API Call error - unable to sync description. Http error code: {}",
                         e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
             }
         }
     }
-
-
 
     /**
      * Updates ConnectWise comments based on SymphonyTicket.
@@ -717,11 +697,29 @@ public class ConnectWiseTicket {
             // Check if ticket exists in ConnectWise
             for (ConnectWiseComment CWComment : getComments()) {
                 // If it exists, and it's not the description: update CW ticket
-                if (SymphonyComment.getThirdPartyId() != null &&
-                        !Objects.equals( SymphonyComment.getThirdPartyId(), getDescription().getThirdPartyId() ) &&
-                        Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) {
+                if (SymphonyComment.getThirdPartyId() != null && // if it has a CW ID
+                        !Objects.equals( SymphonyComment.getThirdPartyId(), getDescription().getThirdPartyId() ) && // It's not the description
+                        Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) { // And CW ID matches
                     commentFound = true;
-                    // API call
+
+                    // API call PATCH
+                    if (!Objects.equals( SymphonyComment.getText(), CWComment.getText() )) { // if text is not the same
+                        // Update text in TAL
+                        CWComment.setText( SymphonyComment.getText() );
+
+                        // Update text in CW
+                        try {
+                            logger.info("updateComments: Attempting to update comment");
+                            String body = "[ {\n" +
+                                    "        \"op\": \"replace\",\n" +
+                                    "        \"path\": \"text\",\n" +
+                                    "        \"value\": \"" + SymphonyComment.getText() + "\"\n" +
+                                    "    }]";
+                            ConnectWiseAPICall(url + "/notes/" + CWComment.getThirdPartyId(), "PATCH", body);
+                        } catch (TalAdapterSyncException e) {
+                            logger.error("updateComments: Attempt failed");
+                        }
+                    }
                 }
             }
 
@@ -751,7 +749,7 @@ public class ConnectWiseTicket {
                         "}";
 
                 try {
-                    JSONObject jsonObject = ConnectWiseAPICall(url, "POST", requestBody);
+                    JSONObject jsonObject = ConnectWiseAPICall(url + "/notes", "POST", requestBody);
                     // Add ThirdParty ticket ID to ticket
                     logger.info("updateComments: POST Successful. Updating Comment ID on Symphony");
                     CWComment.setThirdPartyId(jsonObject.getInt("id") + "");
@@ -769,16 +767,6 @@ public class ConnectWiseTicket {
     }
 
     /**
-     * Posts this ticket to ConnectWise.
-     */
-    public void post() throws TalAdapterSyncException { // TODO: Post ticket method
-        // CHANGE SUMMARY IF TICKET HAS FAILED
-
-        // Post new ticket
-        throw new NotImplementedException("post");
-    }
-
-    /**
      * Converts an HTTP response in JSON format to a ConnectWiseTicket object
      *
      * @param jsonObject Ticket ConnectWise API response
@@ -786,6 +774,17 @@ public class ConnectWiseTicket {
      */
     private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) { // TODO
         ConnectWiseTicket CWJsonTicket = new ConnectWiseTicket(getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl(), getExtraParams());
+
+        // id
+        try {
+            CWJsonTicket.setId(jsonObject.getInt("id") + "");
+
+            CWJsonTicket.setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
+                                CWJsonTicket.getId());
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }
 
         // summary
         try {
@@ -828,7 +827,7 @@ public class ConnectWiseTicket {
     /**
      * Converts a JSON array of ConnectWise comments into a set of {@link Comment}s
      *
-     * @param jsonArray
+     * @param jsonArray JSON Array of CW comments
      * @return Set of Comments of the ConnectWise Comments
      */
     private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) { // TODO
@@ -935,7 +934,21 @@ public class ConnectWiseTicket {
     }
 
     private void AddJSONDescription(JSONObject newDescription) {
-        ConnectWiseComment newCWDescription = new ConnectWiseComment(null, newDescription.getString("id"));
+        ConnectWiseComment newCWDescription = null;
+        try {
+            DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
+            LocalDateTime commentDate = LocalDateTime.parse(newDescription.getString("dateCreated"),
+                    ConnectWiseDateTimeFormatter);
+            ZonedDateTime zdt = ZonedDateTime.of(commentDate, ZoneId.systemDefault());
+            long lastModified = zdt.toInstant().toEpochMilli();
+
+            newCWDescription = new ConnectWiseComment(null, newDescription.getInt("id") + "",
+                    newDescription.getString("createdBy"), newDescription.getString("text"), lastModified,
+                    true, false, false);
+        } catch (Exception e) {
+            logger.error("AddJSONDescription: Error in parsing JSON information on CW Comment - {}", e.getMessage());
+        }
+        setDescription(newCWDescription);
     }
 
     public boolean setStatus(String status) {

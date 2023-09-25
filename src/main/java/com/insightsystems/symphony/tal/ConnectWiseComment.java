@@ -22,24 +22,24 @@ public class ConnectWiseComment {
         setText(text);
     }
 
-    public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, long lastModified,
+    public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, Long lastModified,
                               boolean descriptionFlag, boolean internalFlag, boolean resolutionFlag) {
         setSymphonyId(symphonyId);
         setThirdPartyId(thirdPartyId);
         setCreator(creator);
         setText(text);
-        setLastModified(lastModified);
+        if (lastModified != null) setLastModified(lastModified);
         setDescriptionFlag(descriptionFlag);
         setInternalFlag(internalFlag);
         setResolutionFlag(resolutionFlag);
     }
 
-    public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, long lastModified) {
+    public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, Long lastModified) {
         setSymphonyId(symphonyId);
         setThirdPartyId(thirdPartyId);
         setCreator(creator);
         setText(text);
-        setLastModified(lastModified);
+        if (lastModified != null) setLastModified(lastModified);
         setDescriptionFlag(false);
         setInternalFlag(false);
         setResolutionFlag(false);

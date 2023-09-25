@@ -44,7 +44,7 @@ public class MockSymphony{
         String priority = "Minor";
         String status = "Open";
         String subject = "<TEST> test ticket for TAL";
-        String description = "New TAL adapter test";
+        String description = null;//"Old TAL adapter test";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
         Set< Comment > comments = new HashSet<>();
@@ -58,7 +58,7 @@ public class MockSymphony{
 
         // Mock comment
         Comment patchComment = new Comment("00000", "262344", "lucap@insightsystems.com.au",
-                "TAL Comment PATH NEW", lastModified);
+                "TAL Comment PATCH NEW", lastModified);
         Comment postComment = new Comment("00001", null, "lucap@insightsystems.com.au",
                 "TAL Comment POST", lastModified);
         Comment postComment2 = new Comment("00003", null, "lucap@insightsystems.com.au",
@@ -67,7 +67,7 @@ public class MockSymphony{
                 "Creating mock ticket for TAL Adapter test", lastModified);
 
         comments.add(patchComment);
-        //comments.add(postComment);
+        comments.add(postComment);
         //comments.add(postComment2);
         comments.add(initialDescription);
 
@@ -89,9 +89,9 @@ public class MockSymphony{
         String thirdPartyId = null;
         String thirdPartyLink = null;
         String customerId = "";
-        String priority = "Major";
+        String priority = "Minor";
         String status = "Open";
-        String subject = "<TEST> Back to Symphony!";
+        String subject = "<TEST> Back to Symphony! Again!";
         String description = "Creating a new CW ticket through Symphony again";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
