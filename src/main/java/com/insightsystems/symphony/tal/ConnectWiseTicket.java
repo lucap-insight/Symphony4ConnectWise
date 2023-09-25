@@ -660,12 +660,20 @@ public class ConnectWiseTicket {
                         "        \"value\": \"" + SymphonyTicket.getDescription().getText() + "\"\n" +
                         "    }\n";
                 logger.info("updateDescription: Attempting PATCH request");
-                ConnectWiseAPICall(url + "/notes/" + getDescription().getThirdPartyId(),
-                        "PATCH", body);
+                try{
+                    ConnectWiseAPICall(url + "/notes/" + getDescription().getThirdPartyId(),
+                            "PATCH", body);
+
+                } catch (TalAdapterSyncException e) {
+                    logger.error("syncDescription: CW API Call error - unable to sync description. Http error code: {}",
+                            e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
+                }
             }
-            else // Fix Symphony?
+            else
             {
-                SymphonyTicket.setDescription( getDescription() );
+                // Fix symphony
+                if (SymphonyTicket.getDescription() == null)
+                    SymphonyTicket.setDescription( getDescription() );
             }
         } else {
             // If CW does not have a description comment, create one
@@ -681,7 +689,8 @@ public class ConnectWiseTicket {
                             : "\n") +
                     "}";
             try {
-                ConnectWiseAPICall(url + "/notes", "POST", requestBody);
+                JSONObject newDescription = ConnectWiseAPICall(url + "/notes", "POST", requestBody);
+                AddJSONDescription(newDescription);
             } catch (TalAdapterSyncException e) {
                 logger.error("syncDescription: CW API Call error - unable to sync description. Http error code: {}",
                         e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
@@ -689,35 +698,73 @@ public class ConnectWiseTicket {
         }
     }
 
+
+
     /**
-     * Updates ConnectWise comments based on SymphonyTicket
+     * Updates ConnectWise comments based on SymphonyTicket.
+     * No comment flow from ConnectWise to Symphony.
      * @param SymphonyTicket ticket with updated Symphony information
      */
     private void updateComments(ConnectWiseTicket SymphonyTicket) {
         // Go for every Symphony ticket
-        Set<ConnectWiseComment> ticketsToPost = new HashSet<>();
+        Set<ConnectWiseComment> commentsToPost = new HashSet<>();
         Iterator<ConnectWiseComment> itr = SymphonyTicket.getComments().iterator();
+        ConnectWiseComment SymphonyComment;
         while ( itr.hasNext() ) {
-            ConnectWiseComment SymphonyComment = itr.next();
-            boolean ticketFound = false;
+            SymphonyComment = itr.next();
+            boolean commentFound = false;
 
             // Check if ticket exists in ConnectWise
             for (ConnectWiseComment CWComment : getComments()) {
-                // If it exists and it's not the description: update CW ticket
+                // If it exists, and it's not the description: update CW ticket
                 if (SymphonyComment.getThirdPartyId() != null &&
                         !Objects.equals( SymphonyComment.getThirdPartyId(), getDescription().getThirdPartyId() ) &&
                         Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) {
-                    ticketFound = true;
+                    commentFound = true;
                     // API call
                 }
             }
 
-            if (!ticketFound)
-                ticketsToPost.add(SymphonyComment);
+            if (!commentFound)
+                commentsToPost.add(SymphonyComment);
         }
 
-        for ( ConnectWiseComment CWComment : ticketsToPost ) {
+        if ( !commentsToPost.isEmpty() ) {
             // POST Ticket
+            logger.info("updateComments: Posting {} new comments to ConnectWise",
+                    commentsToPost.size());
+
+            itr = commentsToPost.iterator();
+            String requestBody = "";
+
+            for ( ConnectWiseComment CWComment : commentsToPost ) {
+                CWComment = itr.next();
+
+                requestBody = "{\n" +
+                        "    \"text\" : \"" + CWComment.getText() + "\",\n" +
+                        "    \"internalAnalysisFlag\": true" + // Set to default internal notes
+                        (CWComment.getCreator() != null ? // Make sure comment creator is not null
+                                ",\n" +
+                                        "    \"member\": {\n" +
+                                        "        \"identifier\": \"" + CWComment.getCreator() + "\"\n" +
+                                        "    }\n" : "\n") +
+                        "}";
+
+                try {
+                    JSONObject jsonObject = ConnectWiseAPICall(url, "POST", requestBody);
+                    // Add ThirdParty ticket ID to ticket
+                    logger.info("updateComments: POST Successful. Updating Comment ID on Symphony");
+                    CWComment.setThirdPartyId(jsonObject.getInt("id") + "");
+                    addComment(CWComment); // Add to CW ticket
+                } catch (TalAdapterSyncException e) {
+                    logger.error("updateComments: Unable to POST comment Symphony ID: {}. HTTP error: {}",
+                            CWComment.getSymphonyId(),
+                            e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
+                }
+            }
+            logger.info("updateComments: Finished POSTing comments");
+        } else {
+            logger.info("updateComments: No comments to POST");
         }
     }
 
@@ -885,6 +932,10 @@ public class ConnectWiseTicket {
 
     public void setDescription(ConnectWiseComment description) {
         this.description = description;
+    }
+
+    private void AddJSONDescription(JSONObject newDescription) {
+        ConnectWiseComment newCWDescription = new ConnectWiseComment(null, newDescription.getString("id"));
     }
 
     public boolean setStatus(String status) {
