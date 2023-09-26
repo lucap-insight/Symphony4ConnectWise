@@ -41,10 +41,10 @@ public class MockSymphony{
         String thirdPartyId = "187562";
         String thirdPartyLink = null;
         String customerId = "";
-        String priority = "Major";
+        String priority = "Minor";
         String status = "Open";
-        String subject = "<TEST> patch ticket";
-        String description = null;//"Old TAL adapter test";
+        String subject = "<TEST> TAL test ticket";
+        String description = "TEST tal ticket";//"Old TAL adapter test";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
         Set< Comment > comments = new HashSet<>();
@@ -67,9 +67,9 @@ public class MockSymphony{
                 "Creating mock ticket for TAL Adapter test", lastModified);
 
         comments.add(patchComment);
-        comments.add(postComment);
-        comments.add(postComment2);
-        comments.add(initialDescription);
+        //comments.add(postComment);
+        //comments.add(postComment2);
+        //comments.add(initialDescription);
 
         extraParams.put("connectionFailed", "false");
 

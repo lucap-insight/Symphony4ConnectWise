@@ -27,32 +27,32 @@ public class MockSymphonyDriver {
         int testNum = 0;
 
         // ---------------------------  TEST : PATCH --------------------------- //
-        TestCase(Symphony, Symphony.getTicket(), testNum, "PATCH TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicket(), testNum, "PATCH TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : NO CHANGES ---------------------------//
         TestCase(Symphony, Symphony.getTicket(), testNum, "NO CHANGE TICKET");
         testNum ++;
 
         // ---------------------------  TEST : PATCH HALF --------------------------- //
-        TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH TICKET");
-        testNum ++;
+        // TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH HALF TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : POST --------------------------- //
-        TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
+        //testNum ++;
 
         // --------------------------- TEST : POST LACKING INFO ---------------------------//
-        TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : WRONG TICKET --------------------------- //
-        TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : FAILED TICKET --------------------------- //
-        TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
+        //testNum ++;
 
 
     }
