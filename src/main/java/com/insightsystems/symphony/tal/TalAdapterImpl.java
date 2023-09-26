@@ -175,9 +175,11 @@ public class TalAdapterImpl implements TalAdapter {
             } else {
                 // Otherwise, create new ticket
                 CWTicket.post();
+                logger.info("syncTalTicket: remapping ticket to Symphony");
                 TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             }
 
+            logger.info("syncTalTicket: synchronization complete");
             return talTicket;
 
             /*

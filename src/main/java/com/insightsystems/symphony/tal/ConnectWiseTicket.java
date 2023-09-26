@@ -270,7 +270,7 @@ public class ConnectWiseTicket {
                 }
 
             } catch (Exception e) {
-                logger.error("refresh: Attempt failed");
+                logger.warn("refresh: Attempt failed");
             }
 
             // If response is null API call resulted in error: try manually building url
@@ -292,7 +292,7 @@ public class ConnectWiseTicket {
                     setUrl(URL);
                     syncedCWTicket.setUrl(URL);
                 } catch (Exception e) {
-                    logger.error("refresh: Attempt failed");
+                    logger.warn("refresh: Attempt failed");
                 }
             }
 
@@ -500,6 +500,7 @@ public class ConnectWiseTicket {
         // If summaries are not the same
         if (!Objects.equals( SymphonyTicket.getSummary(), getSummary())) {
             if (setSummary( SymphonyTicket.getSummary() )) {
+                logger.info("updateSummary: updating CW summary");
                 returnVal = " {\n" +
                         "        \"op\": \"replace\",\n" +
                         "        \"path\": \"summary\",\n" +
@@ -507,17 +508,16 @@ public class ConnectWiseTicket {
                         "    }\n";
 
             } else if (SymphonyTicket.getDescription() != null) { // if Symphony value is null
+                logger.info("updateSummary: updating CW summary to symphony description");
                 setSummary( SymphonyTicket.getDescription().getText() ); // set summary to description
-                // Limiting summary to 100 characters
-                int endIndex = Math.min(100, SymphonyTicket.getDescription().getText().length());
-                String newSummary = SymphonyTicket.getDescription().getText().substring(0, endIndex);
                 returnVal = " {\n" +
                         "        \"op\": \"replace\",\n" +
                         "        \"path\": \"summary\",\n" +
-                        "        \"value\": \"" + newSummary + "\"\n" +
+                        "        \"value\": \"" + getSummary() + "\"\n" +
                         "    }\n";
 
             } else if ( getSummary() != null ) { // if Symphony has null values but CW doesn't - update Symphony
+                logger.info("updateSummary: updating Symphony summary");
                 SymphonyTicket.setSummary( getSummary() );
             }
         }
@@ -544,12 +544,14 @@ public class ConnectWiseTicket {
             String op = (getStatus() == null ? "add" : "replace");
 
             if ( setStatus(SymphonyTicket.getStatus()) ) {
+                logger.info("updateStatus: updating status from {} to {}", getStatus(), SymphonyTicket.getStatus());
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"status/name\",\n" +
                         "        \"value\": \"" + SymphonyTicket.getStatus() + "\"\n" +
                         "    }\n";
             } else {
+                logger.info("updateStatus: updating Symphony status from {} to {}", SymphonyTicket.getStatus(), getStatus());
                 SymphonyTicket.setStatus( getStatus() );
             }
         }
@@ -576,14 +578,23 @@ public class ConnectWiseTicket {
             String op = (getPriority() == null ? "add" : "replace");
 
             if ( setPriority(SymphonyTicket.getPriority()) ) {
+                logger.info("updatePriority: updating CW priority from {} to {}", getPriority(), SymphonyTicket.getPriority());
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"priority/id\",\n" +
                         "        \"value\": \"" + SymphonyTicket.getPriority() + "\"\n" +
                         "    }\n";
             } else {
+                logger.info("updatePriority: updating Symphony priority from {} to {}", SymphonyTicket.getPriority(), getPriority());
                 SymphonyTicket.setPriority( getPriority() );
             }
+
+            // Add comment for change in priority
+            String priorityChangeText = "Priority updated: " + getPriority() + " -> " + SymphonyTicket.getPriority();
+            ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
+                    null,
+            false, true, false);
+            SymphonyTicket.addComment(priorityChange);
         }
 
         // Add , before if pathRequest had something
@@ -605,15 +616,18 @@ public class ConnectWiseTicket {
         String returnVal = "";
 
         if (!Objects.equals( getAssignee(), SymphonyTicket.getAssignee() )) {
+
             String op = (getAssignee() == null ? "add" : "replace");
 
             if ( setAssignedTo(SymphonyTicket.getAssignee()) ) {
+                logger.info("updateAssignee: updating CW assignee");
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"owner/identifier\",\n" +
                         "        \"value\": \"" + SymphonyTicket.getAssignee() + "\"\n" +
                         "    }\n";
             } else {
+                logger.info("updateAssignee: updating Symphony assignee");
                 SymphonyTicket.setAssignedTo( getAssignee() );
             }
         }
@@ -667,8 +681,10 @@ public class ConnectWiseTicket {
         } else {
             // If CW does not have a description comment, create one
             logger.info("updateDescription: ConnectWise description comment not found. Creating new comment");
+            String description = "New Symphony ticket: No description found";
+            if (SymphonyTicket.getDescription() != null) description = SymphonyTicket.getDescription().getText();
             String requestBody = "{\n" +
-                    "    \"text\" : \"" + SymphonyTicket.getDescription().getText() + "\",\n" +
+                    "    \"text\" : \"" + description + "\",\n" +
                     "    \"detailDescriptionFlag\": true" + // Set to default internal notes
                     (SymphonyTicket.getRequester() != null ? // make sure ticket requester is not null
                             "    ,\n" +
