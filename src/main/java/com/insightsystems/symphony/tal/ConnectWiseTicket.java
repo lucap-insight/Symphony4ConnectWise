@@ -385,7 +385,6 @@ public class ConnectWiseTicket {
             patchRequest = "[" + patchRequest + "]"; // Final request formatting
             logger.info("patch: Making PATCH request");
             try {
-                logger.warn(patchRequest);
                 ConnectWiseAPICall(url, "PATCH", patchRequest);
             } catch (Exception e) {
                 logger.error("patch: PATCH request failed");
