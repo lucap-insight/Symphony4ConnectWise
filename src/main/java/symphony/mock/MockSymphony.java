@@ -41,9 +41,9 @@ public class MockSymphony{
         String thirdPartyId = "187562";
         String thirdPartyLink = null;
         String customerId = "";
-        String priority = "Minor";
+        String priority = "Major";
         String status = "Open";
-        String subject = "<TEST> test ticket for TAL";
+        String subject = "<TEST> patch ticket";
         String description = null;//"Old TAL adapter test";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
@@ -60,18 +60,51 @@ public class MockSymphony{
         Comment patchComment = new Comment("00000", "262344", "lucap@insightsystems.com.au",
                 "TAL Comment PATCH NEW", lastModified);
         Comment postComment = new Comment("00001", null, "lucap@insightsystems.com.au",
-                "TAL Comment POST", lastModified);
+                "TAL Comment another POST", lastModified);
         Comment postComment2 = new Comment("00003", null, "lucap@insightsystems.com.au",
-                "TAL Comment POST 2", lastModified);
+                "TAL Comment POST 1000", lastModified);
         Comment initialDescription = new Comment("00002", "262346", "lucap@insightsystems.com.au",
                 "Creating mock ticket for TAL Adapter test", lastModified);
 
         comments.add(patchComment);
         comments.add(postComment);
-        //comments.add(postComment2);
+        comments.add(postComment2);
         comments.add(initialDescription);
 
-        //extraParams.put("connectionFailed", "true");
+        extraParams.put("connectionFailed", "false");
+
+        // Creating new ticket
+        TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
+                thirdPartyLink, customerId, priority, status, subject,
+                description, requester, assignedTo, comments,
+                attachments, extraParams, lastModified);
+
+        return newTicket;
+    }
+
+    public TalTicket getTicketMissingInfo() {
+        // Setting parameters for new ticket
+        String symphonyId = "1067758";
+        String symphonyLink = "1067758";
+        String thirdPartyId = "187562";
+        String thirdPartyLink = null;
+        String customerId = "";
+        String priority = null;
+        String status = null;
+        String subject = null;
+        String description = null;//"Old TAL adapter test";
+        String requester = null;
+        String assignedTo = "lucap@insightsystems.com.au";
+        Set< Comment > comments = new HashSet<>();
+
+        Set< Attachment > attachments = new HashSet<>();
+
+        Map<String, String> extraParams = new HashMap<>();
+        // Current date time
+        Date date = new Date();
+        Long lastModified = date.getTime();
+
+        extraParams.put("connectionFailed", "false");
 
         // Creating new ticket
         TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
@@ -91,7 +124,7 @@ public class MockSymphony{
         String customerId = "";
         String priority = "Minor";
         String status = "Open";
-        String subject = "<TEST> Back to Symphony! Again!";
+        String subject = "<TEST> Post ticket";
         String description = "Creating a new CW ticket through Symphony again";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
@@ -171,5 +204,101 @@ public class MockSymphony{
         }
 
         return ticketToReturn;
+    }
+
+    public TalTicket getWrongTicket() {
+        // Setting parameters for new ticket
+        String symphonyId = "1067758";
+        String symphonyLink = "1067758";
+        String thirdPartyId = "123456789";
+        String thirdPartyLink = null;
+        String customerId = "";
+        String priority = "Minor";
+        String status = "Open";
+        String subject = "<TEST> Wrong ticket";
+        String description = null;//"Old TAL adapter test";
+        String requester = "lucap@insightsystems.com.au";
+        String assignedTo = "lucap@insightsystems.com.au";
+        Set< Comment > comments = new HashSet<>();
+
+        Set< Attachment > attachments = new HashSet<>();
+
+        Map<String, String> extraParams = new HashMap<>();
+        // Current date time
+        Date date = new Date();
+        Long lastModified = date.getTime();
+
+        // Mock comment
+        Comment patchComment = new Comment("00000", "262344", "lucap@insightsystems.com.au",
+                "TAL Comment PATCH NEW", lastModified);
+        Comment postComment = new Comment("00001", null, "lucap@insightsystems.com.au",
+                "TAL Comment POST", lastModified);
+        Comment postComment2 = new Comment("00003", null, "lucap@insightsystems.com.au",
+                "TAL Comment POST 2", lastModified);
+        Comment initialDescription = new Comment("00002", "262346", "lucap@insightsystems.com.au",
+                "Creating mock ticket for TAL Adapter test", lastModified);
+
+        comments.add(patchComment);
+        comments.add(postComment);
+        //comments.add(postComment2);
+        comments.add(initialDescription);
+
+        extraParams.put("connectionFailed", "false");
+
+        // Creating new ticket
+        TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
+                thirdPartyLink, customerId, priority, status, subject,
+                description, requester, assignedTo, comments,
+                attachments, extraParams, lastModified);
+
+        return newTicket;
+    }
+
+    public TalTicket getFailedTicket() {
+        // Setting parameters for new ticket
+        String symphonyId = "1067758";
+        String symphonyLink = "1067758";
+        String thirdPartyId = "123456789";
+        String thirdPartyLink = null;
+        String customerId = "";
+        String priority = "Minor";
+        String status = "Open";
+        String subject = "<TEST> Failed ticket";
+        String description = null;//"Old TAL adapter test";
+        String requester = "lucap@insightsystems.com.au";
+        String assignedTo = "lucap@insightsystems.com.au";
+        Set< Comment > comments = new HashSet<>();
+
+        Set< Attachment > attachments = new HashSet<>();
+
+        Map<String, String> extraParams = new HashMap<>();
+        // Current date time
+        Date date = new Date();
+        Long lastModified = date.getTime();
+
+        // Mock comment
+        Comment patchComment = new Comment("00000", "262344", "lucap@insightsystems.com.au",
+                "TAL Comment PATCH NEW", lastModified);
+        Comment postComment = new Comment("00001", null, "lucap@insightsystems.com.au",
+                "TAL Comment POST", lastModified);
+        Comment postComment2 = new Comment("00003", null, "lucap@insightsystems.com.au",
+                "TAL Comment POST 2", lastModified);
+        Comment initialDescription = new Comment("00002", "262346", "lucap@insightsystems.com.au",
+                "Creating mock ticket for TAL Adapter test", lastModified);
+
+        comments.add(patchComment);
+        comments.add(postComment);
+        //comments.add(postComment2);
+        comments.add(initialDescription);
+
+        extraParams.put("connectionFailed", "true");
+
+        // Creating new ticket
+        TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
+                thirdPartyLink, customerId, priority, status, subject,
+                description, requester, assignedTo, comments,
+                attachments, extraParams, lastModified);
+
+        return newTicket;
     }
 }
