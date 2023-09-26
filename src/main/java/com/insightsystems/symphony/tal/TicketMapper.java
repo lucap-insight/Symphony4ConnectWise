@@ -4,10 +4,7 @@
 
 package com.insightsystems.symphony.tal;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.avispl.symphony.api.tal.TalConfigService;
@@ -65,7 +62,10 @@ public class TicketMapper {
      */
     public static TalTicket mapThirdPartyToSymphony(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config)
     {
-
+        ticket.setSubject(CWTicket.getSummary());
+        if (CWTicket.getDescription() != null) ticket.setDescription(CWTicket.getDescription().getText());
+        ticket.setThirdPartyId(CWTicket.getId());
+        ticket.setThirdPartyLink(CWTicket.getUrl());
 
         remapTicketStatus(ticket, CWTicket, config);
         remapTicketPriority(ticket, CWTicket, config);
@@ -196,8 +196,13 @@ public class TicketMapper {
      * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void remapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { //TODO
+    private static void remapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        String symphonyStatus = config.getStatusMappingForSymphony().get(CWTicket.getStatus());
 
+        if (symphonyStatus == null)
+            return;
+
+        ticket.setStatus(symphonyStatus);
     }
 
     /**
@@ -206,8 +211,13 @@ public class TicketMapper {
      * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void remapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
+    private static void remapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        String symphonyPriority = config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
 
+        if (symphonyPriority == null)
+            return;
+
+        CWTicket.setPriority(symphonyPriority);
     }
 
     /**
@@ -216,8 +226,8 @@ public class TicketMapper {
      * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
-
+    private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        ticket.setRequester(mapUser(CWTicket.getRequester(), config));
     }
 
     /**
@@ -226,8 +236,8 @@ public class TicketMapper {
      * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
-
+    private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        ticket.setAssignedTo(mapUser(CWTicket.getAssignee(), config));
     }
 
     /**
@@ -237,7 +247,13 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
-
+        Set<Comment> symphonyComments = new HashSet<>();
+        Optional.ofNullable(CWTicket.getComments())
+                .orElse(Collections.emptySet())
+                .stream()
+                .forEach(c -> symphonyComments.add(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
+                        mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+        ticket.setComments(symphonyComments);
     }
 
     /**
@@ -247,6 +263,6 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapAttachmentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
-
+        // space for attachment mapping
     }
 }
