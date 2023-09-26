@@ -2,6 +2,7 @@ package com.insightsystems.symphony.tal;
 
 import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import com.avispl.symphony.api.tal.error.TalRecoverableException;
 import org.apache.commons.lang.NotImplementedException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -114,6 +115,11 @@ public class ConnectWiseTicket {
      */
     private Map<String, String> extraParams;
 
+    /**
+     * List of recoverable HTTP statuses
+     */
+    List<Integer> RecoverableHttpStatus;
+
 
     //---------------------------------//
     //* ---------- METHODS ---------- *//
@@ -134,6 +140,12 @@ public class ConnectWiseTicket {
         setUrl(url);
         setExtraParams(extraParams);
         setComments(new HashSet<>());
+
+        RecoverableHttpStatus = new ArrayList<Integer>();
+        RecoverableHttpStatus.add(408);
+        RecoverableHttpStatus.add(429);
+        RecoverableHttpStatus.add(502);
+        RecoverableHttpStatus.add(503);
     }
 
     /**
@@ -248,11 +260,10 @@ public class ConnectWiseTicket {
     public ConnectWiseTicket refresh() throws TalAdapterSyncException {
         // Declare synced ticket
         ConnectWiseTicket syncedCWTicket = null;
+        Set<TalAdapterSyncException> errors = new HashSet<>();
 
         // GET ticket
         if (this.getId() != null || this.getUrl() != null) {
-            logger.info("refresh: Ticket has ID or Third Party link");
-
             // Attempt connection through URL
             logger.info("refresh: Attempting API call using Third Party Link");
             try {
@@ -271,6 +282,8 @@ public class ConnectWiseTicket {
 
             } catch (Exception e) {
                 logger.warn("refresh: Attempt failed");
+                if (e.getClass() == TalAdapterSyncException.class)
+                    errors.add((TalAdapterSyncException) e);
             }
 
             // If response is null API call resulted in error: try manually building url
@@ -293,6 +306,8 @@ public class ConnectWiseTicket {
                     syncedCWTicket.setUrl(URL);
                 } catch (Exception e) {
                     logger.warn("refresh: Attempt failed");
+                    if (e.getClass() == TalAdapterSyncException.class)
+                        errors.add((TalAdapterSyncException) e);
                 }
             }
 
@@ -304,6 +319,15 @@ public class ConnectWiseTicket {
                 // Check if a connectionFailed already happen to prevent creating multiple tickets
                 if (Objects.equals(getExtraParams().get("connectionFailed"), "true")) {
                     logger.info("refresh: Ticket has failed before - not creating new ticket");
+
+                    // Check for recoverable exceptions
+                    for (TalAdapterSyncException error : errors) {
+                        if (error.getHttpStatus() != null &&
+                                RecoverableHttpStatus.contains(error.getHttpStatus().value())) {
+                            throw error;
+                        }
+                    }
+
                     throw new TalAdapterSyncException("Cannot sync TAL ticket");
                 } else {
                     // If it's the first time failing add connectionFailed parameter
@@ -473,7 +497,7 @@ public class ConnectWiseTicket {
         // Adding initial priority comment
         ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
                 String.format("Initial ticket priority: %s",
-                        config.getPriorityMappingForThirdParty().get(getPriority())),
+                        config.getPriorityMappingForSymphony().get(getPriority())),
                 null);
         addComment(initialPriorityComment);
 
