@@ -187,7 +187,7 @@ public class ConnectWiseTicket {
 
         // Response
         HttpResponse<String> response = null;
-        logger.info("ConnectWiseAPICall: Getting response");
+        //logger.info("ConnectWiseAPICall: Getting response");
         try {
             // Send HTTP request
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
@@ -576,25 +576,31 @@ public class ConnectWiseTicket {
 
         if (!Objects.equals( getPriority(), SymphonyTicket.getPriority() )) {
             String op = (getPriority() == null ? "add" : "replace");
+            String symphonyPriority = config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority());
 
             if ( setPriority(SymphonyTicket.getPriority()) ) {
-                logger.info("updatePriority: updating CW priority from {} to {}", getPriority(), SymphonyTicket.getPriority());
+                logger.info("updatePriority: updating CW priority from {} to {}",
+                        config.getPriorityMappingForSymphony().get(getPriority()),
+                        symphonyPriority);
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"priority/id\",\n" +
                         "        \"value\": \"" + SymphonyTicket.getPriority() + "\"\n" +
                         "    }\n";
+
+                // Add comment for change in priority
+                String priorityChangeText = "Priority updated: " +
+                        config.getPriorityMappingForSymphony().get(getPriority()) + " -> " + symphonyPriority;
+                ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
+                        null,
+                        false, true, false);
+                SymphonyTicket.addComment(priorityChange);
+
             } else {
-                logger.info("updatePriority: updating Symphony priority from {} to {}", SymphonyTicket.getPriority(), getPriority());
+                logger.info("updatePriority: updating Symphony priority from {} to {}",
+                        config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority()), getPriority());
                 SymphonyTicket.setPriority( getPriority() );
             }
-
-            // Add comment for change in priority
-            String priorityChangeText = "Priority updated: " + getPriority() + " -> " + SymphonyTicket.getPriority();
-            ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
-                    null,
-            false, true, false);
-            SymphonyTicket.addComment(priorityChange);
         }
 
         // Add , before if pathRequest had something
