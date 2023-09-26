@@ -340,7 +340,7 @@ public class ConnectWiseTicket {
                     .min( Comparator.comparing(ConnectWiseComment::getLastModified));
             // Set description
             if (oldestDescriptionComment.isPresent()) {
-                logger.info("refresh: tiket description found");
+                logger.info("refresh: ticket description found");
                 ConnectWiseComment description = oldestDescriptionComment.get();
                 syncedCWTicket.setDescription(description);
             } else {
@@ -385,6 +385,7 @@ public class ConnectWiseTicket {
             patchRequest = "[" + patchRequest + "]"; // Final request formatting
             logger.info("patch: Making PATCH request");
             try {
+                logger.warn(patchRequest);
                 ConnectWiseAPICall(url, "PATCH", patchRequest);
             } catch (Exception e) {
                 logger.error("patch: PATCH request failed");
@@ -576,12 +577,12 @@ public class ConnectWiseTicket {
 
         if (!Objects.equals( getPriority(), SymphonyTicket.getPriority() )) {
             String op = (getPriority() == null ? "add" : "replace");
-            String symphonyPriority = config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority());
+            String CWPriority = config.getPriorityMappingForSymphony().get(getPriority());
 
             if ( setPriority(SymphonyTicket.getPriority()) ) {
                 logger.info("updatePriority: updating CW priority from {} to {}",
                         config.getPriorityMappingForSymphony().get(getPriority()),
-                        symphonyPriority);
+                        CWPriority);
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"priority/id\",\n" +
@@ -589,8 +590,8 @@ public class ConnectWiseTicket {
                         "    }\n";
 
                 // Add comment for change in priority
-                String priorityChangeText = "Priority updated: " +
-                        config.getPriorityMappingForSymphony().get(getPriority()) + " -> " + symphonyPriority;
+                String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
+                        config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority());
                 ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
                         null,
                         false, true, false);
@@ -598,7 +599,8 @@ public class ConnectWiseTicket {
 
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
-                        config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority()), getPriority());
+                        config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority()),
+                        config.getPriorityMappingForSymphony().get(getPriority()) );
                 SymphonyTicket.setPriority( getPriority() );
             }
         }
@@ -731,6 +733,7 @@ public class ConnectWiseTicket {
                         !Objects.equals( SymphonyComment.getThirdPartyId(), getDescription().getThirdPartyId() ) && // It's not the description
                         Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) { // And CW ID matches
                     commentFound = true;
+                    CWComment.setSymphonyId( SymphonyComment.getSymphonyId() ); // Keep Symphony ID
 
                     // API call PATCH
                     if (!Objects.equals( SymphonyComment.getText(), CWComment.getText() )) { // if text is not the same
@@ -1059,5 +1062,23 @@ public class ConnectWiseTicket {
 
     public void setExtraParams(Map<String, String> extraParams) {
         this.extraParams = extraParams;
+    }
+
+    public String toString() {
+        return "ConnectWiseTicket{" +
+                "symphonyId='" + getSymphonyId() + "', " +
+                "symphonyLink='" + getSymphonyLink() + "', " +
+                "thirdPartyId='" + getId() + "', " +
+                "thirdPartyLink='" + getUrl() + "', " +
+                "customerId='" + getCustomerId() + "', " +
+                "priority='" + getPriority() + "', " +
+                "status='" + getStatus() + "', " +
+                "subject='" + getSummary() + "', " +
+                "description='" + (getDescription() == null ? "null" : getDescription().getText()) + "', " +
+                "requester='" + getRequester() + "', " +
+                "assignedTo='" + getAssignee() + "', " +
+                "extraParams=" + getExtraParams().toString() + ", " +
+                "comments=" + getComments().toString() +
+                "}";
     }
 }

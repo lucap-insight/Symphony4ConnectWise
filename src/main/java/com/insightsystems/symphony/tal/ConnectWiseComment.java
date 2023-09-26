@@ -108,4 +108,14 @@ public class ConnectWiseComment {
     public void setResolutionFlag(boolean resolutionFlag) {
         this.resolutionFlag = resolutionFlag;
     }
+
+    public String toString() {
+        return "Comment{" +
+                "symphonyId='" + getSymphonyId() + "', " +
+                "thirdPartyId='" + getThirdPartyId() + "', " +
+                "creator='" + getCreator() + "', " +
+                "text='" + getText() + "', " +
+                "lastModified=" + lastModified +
+                "}";
+    }
 }
