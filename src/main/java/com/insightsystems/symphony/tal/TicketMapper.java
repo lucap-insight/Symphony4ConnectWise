@@ -191,6 +191,24 @@ public class TicketMapper {
     }
 
     /**
+     * Maps user ID from Symphony to 3rd party ticketing system
+     * @param userId user identifier to map
+     * @param config adapter configuration
+     * @return mapped identifier eligible for 3rd party ticketing system
+     */
+    private static String remapUser(String userId, TicketSystemConfig config) {
+        if (userId == null)
+            return null;
+
+        String thirdPartyUserId = config.getUserMappingForSymphony().get(userId);
+
+        if (thirdPartyUserId == null)
+            return userId;
+
+        return thirdPartyUserId;
+    }
+
+    /**
      * Maps ticket status from ConnectWise to Symphony
      * @param ticket ticket to map status to
      * @param CWTicket ticket instance that needs to be mapped
@@ -227,7 +245,7 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        ticket.setRequester(mapUser(CWTicket.getRequester(), config));
+        ticket.setRequester(remapUser(CWTicket.getRequester(), config));
     }
 
     /**
@@ -237,7 +255,7 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        ticket.setAssignedTo(mapUser(CWTicket.getAssignee(), config));
+        ticket.setAssignedTo(remapUser(CWTicket.getAssignee(), config));
     }
 
     /**
@@ -248,11 +266,13 @@ public class TicketMapper {
      */
     private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
         Set<Comment> symphonyComments = new HashSet<>();
+
         Optional.ofNullable(CWTicket.getComments())
                 .orElse(Collections.emptySet())
                 .stream()
                 .forEach(c -> symphonyComments.add(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
-                        mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+                        remapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+
         ticket.setComments(symphonyComments);
     }
 
