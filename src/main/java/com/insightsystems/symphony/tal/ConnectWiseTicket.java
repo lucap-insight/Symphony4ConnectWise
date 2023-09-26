@@ -295,6 +295,11 @@ public class ConnectWiseTicket {
                 // API_PATH example: "/v4_6_release/apis/3.0/service/tickets"
                 // ThirdPartyId example: "187204"
                 // url example: "https://connect.myCompany.com.au/v4_6_release/apis/3.0/service/tickets/187204"
+                if (getId() == null ||
+                        config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+                        config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+                    logger.warn("refresh: Unable to form url - one of [URL, API_PATH, Ticket ID] is null");
+                }
 
                 String URL = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                         config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
@@ -371,7 +376,7 @@ public class ConnectWiseTicket {
                 logger.info("Ticket description not found");
             }
 
-            // TODO: Space to get ticket attachments as well
+            // Space to get ticket attachments
         } else {
             logger.info("refresh: Ticket not synced");
         }

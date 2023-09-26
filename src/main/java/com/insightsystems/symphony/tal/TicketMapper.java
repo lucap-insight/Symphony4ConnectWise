@@ -264,7 +264,7 @@ public class TicketMapper {
      * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      */
-    private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) { // TODO
+    private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         Set<Comment> symphonyComments = new HashSet<>();
 
         Optional.ofNullable(CWTicket.getComments())

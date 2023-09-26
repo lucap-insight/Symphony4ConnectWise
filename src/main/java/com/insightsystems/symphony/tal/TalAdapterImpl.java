@@ -845,7 +845,6 @@ public class TalAdapterImpl implements TalAdapter {
      * @return if found, JSONObject with ConnectWise's comment that contains its description - null otherwise
      */
     public JSONObject syncDescription(TalTicket talTicket, String url, JSONArray CWComments) {
-        // FIXME: Description will show initial priority on first time set
         /*
         This method attempts to sync the Symphony and CW descriptions.
 
