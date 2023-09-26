@@ -235,7 +235,7 @@ public class TicketMapper {
         if (symphonyPriority == null)
             return;
 
-        CWTicket.setPriority(symphonyPriority);
+        ticket.setPriority(symphonyPriority);
     }
 
     /**
