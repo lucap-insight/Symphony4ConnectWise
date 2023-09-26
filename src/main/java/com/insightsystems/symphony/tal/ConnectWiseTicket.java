@@ -542,9 +542,10 @@ public class ConnectWiseTicket {
 
         if (!Objects.equals( getStatus(), SymphonyTicket.getStatus() )) {
             String op = (getStatus() == null ? "add" : "replace");
+            String previousStatus = getStatus();
 
             if ( setStatus(SymphonyTicket.getStatus()) ) {
-                logger.info("updateStatus: updating status from {} to {}", getStatus(), SymphonyTicket.getStatus());
+                logger.info("updateStatus: updating status from {} to {}", previousStatus, SymphonyTicket.getStatus());
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"status/name\",\n" +
@@ -580,8 +581,8 @@ public class ConnectWiseTicket {
 
             if ( setPriority(SymphonyTicket.getPriority()) ) {
                 logger.info("updatePriority: updating CW priority from {} to {}",
-                        config.getPriorityMappingForSymphony().get(getPriority()),
-                        CWPriority);
+                        CWPriority,
+                        config.getPriorityMappingForSymphony().get(SymphonyTicket.getPriority()) );
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"priority/id\",\n" +
