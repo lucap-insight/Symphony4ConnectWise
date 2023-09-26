@@ -315,8 +315,7 @@ public class ConnectWiseTicket {
             }
         }
 
-        // TODO: GET comments on refresh
-        if (syncedCWTicket != null) {
+        if (syncedCWTicket != null) { // if successfully synced ticket
             logger.info("refresh: successfully refreshed ticket");
 
             // Add extra parameter to show connection was successful (set connectionFailed to false)
@@ -409,11 +408,11 @@ public class ConnectWiseTicket {
     /**
      * Posts this ticket to ConnectWise.
      */
-    public void post() throws TalAdapterSyncException { // TODO: Post ticket method
+    public void post() throws TalAdapterSyncException {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
             Objects.equals(getExtraParams().get("connectionFailed"), "true")) { // If it's true
-            setSummary(getSummary() + " - CONNECTION FAILED");
+            setSummary("ERROR: previous ticket not found - " + getSummary());
         }
 
         // Create new ticket on ConnectWise
@@ -429,6 +428,15 @@ public class ConnectWiseTicket {
         setUrl( config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) );
 
+        // Ensure summary exists
+        if (getSummary() == null) {
+            // if it failed to set summary to description or description doesn't exist
+            if (getDescription() == null || !setSummary(getDescription().getText())) {
+                setSummary("<Symphony> NEW Ticket"); // FIXME: Hard coded standard summary
+            }
+        }
+
+        // FIXME: Get board and company from ticketSourceConfig/TalConfigService
         String requestBody = "{\n" +
                 "    \"summary\" : \"" + getSummary() + "\",\n" +
                 "    \"board\" : {\n" +
@@ -772,7 +780,7 @@ public class ConnectWiseTicket {
      * @param jsonObject Ticket ConnectWise API response
      * @return converted ticket
      */
-    private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) { // TODO
+    private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) {
         ConnectWiseTicket CWJsonTicket = new ConnectWiseTicket(getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl(), getExtraParams());
 
         // id
@@ -830,7 +838,7 @@ public class ConnectWiseTicket {
      * @param jsonArray JSON Array of CW comments
      * @return Set of Comments of the ConnectWise Comments
      */
-    private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) { // TODO
+    private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) {
         Set<ConnectWiseComment> JSONComments = new HashSet<>();
         DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
 
@@ -917,7 +925,8 @@ public class ConnectWiseTicket {
     public boolean setSummary(String summary) {
         if (summary == null)
             return false;
-        this.summary = summary;
+        int minIndex = Math.min(summary.length(), 100); // Cap summary size to 100
+        this.summary = summary.substring(0, minIndex);
         return true;
     }
 

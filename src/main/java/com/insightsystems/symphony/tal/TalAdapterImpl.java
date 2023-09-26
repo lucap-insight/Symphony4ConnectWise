@@ -157,7 +157,7 @@ public class TalAdapterImpl implements TalAdapter {
 
             // map status, priorities, users to comply with 3rd party ticketing system
             try {
-                CWTicket = TicketMapper.mapSymphonyToThirdParty(talTicket, config); //FIXME: Should return CWTicket
+                CWTicket = TicketMapper.mapSymphonyToThirdParty(talTicket, config);
             } catch (NullPointerException e) {
                 logger.error("syncTalTicket: error mapping Ticket info to CW equivalent");
                 throw e;
@@ -184,7 +184,7 @@ public class TalAdapterImpl implements TalAdapter {
 
             // Setup information to connect to ConnectWise API
             String url = null; // this will hold the url to access the ticket
-            JSONObject CWTicket = null; // This is the ConnectWise synced ticket //FIXME: Turn into class
+            JSONObject CWTicket = null; // This is the ConnectWise synced ticket
 
             // If the ConnectWise connection has been set using TalTicket's ThirdPartyLink
             // False if connection was set up using the ID or if a new ticket was created
@@ -207,7 +207,7 @@ public class TalAdapterImpl implements TalAdapter {
                     connectionByLink = true; // Connection was successful using ThirdPartyLink
                 } catch (Exception e) {
                     logger.error("syncTalTicket: Attempt failed - " + e.getMessage());
-                } //FIXME: exception should be thrown since there is a failure during ticket update ???
+                }
 
                 // If response is null API call resulted in error: try manually building url
                 if (CWTicket == null) { //FIXME: Perform some sort of verification on link
