@@ -170,7 +170,7 @@ public class ConnectWiseTicket {
 
         if (url == null) {
             logger.error("ConnectWiseAPICall: URL cannot be null");
-            throw new NullPointerException("URL for API call cannot be null");
+            throw new TalAdapterSyncException("URL for API call cannot be null");
         }
 
         HttpClient client = HttpClient.newHttpClient();
@@ -271,10 +271,8 @@ public class ConnectWiseTicket {
                     setId(syncedCWTicket.getId()); // Update ticket id
                 }
 
-            } catch (Exception e) {
-                logger.warn("refresh: Attempt failed");
-                if (e.getClass() == TalAdapterSyncException.class)
-                    errors.add((TalAdapterSyncException) e);
+            } catch (TalAdapterSyncException e) {
+                errors.add(e);
             }
 
             // If response is null API call resulted in error: try manually building url
@@ -305,10 +303,8 @@ public class ConnectWiseTicket {
                     syncedCWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(URL, "GET", null));
                     setUrl(URL);
                     syncedCWTicket.setUrl(URL);
-                } catch (Exception e) {
-                    logger.warn("refresh: Attempt failed");
-                    if (e.getClass() == TalAdapterSyncException.class)
-                        errors.add((TalAdapterSyncException) e);
+                } catch (TalAdapterSyncException e) {
+                    errors.add( e);
                 }
             }
 
@@ -321,21 +317,22 @@ public class ConnectWiseTicket {
                 if (Objects.equals(getExtraParams().get("connectionFailed"), "true")) {
                     logger.info("refresh: Ticket has failed before - not creating new ticket");
 
+                    HttpStatus status1 = null;
                     // Check for recoverable exceptions
                     for (TalAdapterSyncException error : errors) {
                         if (error.getHttpStatus() != null &&
                                 RecoverableHttpStatus.contains(error.getHttpStatus().value())) {
-                            throw error;
+                            status1 = error.getHttpStatus();
                         }
                     }
                     // if no recoverable errors were found just throw a TalAdapterSyncException
-                    throw new TalAdapterSyncException("Cannot sync TAL ticket");
+                    throw new TalAdapterSyncException("Cannot sync TAL ticket", status1);
 
                 } else {
                     // If it's the first time failing add connectionFailed parameter
                     if (getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
                         // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                        getExtraParams().replace("connectionFailed","true");
+                        getExtraParams().replace("connectionFailed", "true");
                     }
                 }
             }
@@ -357,7 +354,8 @@ public class ConnectWiseTicket {
 
             logger.info("refresh: Attempting to retrieve comments");
 
-            JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null).getJSONArray("JSONArray");
+            JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null)
+                    .getJSONArray("JSONArray");
             syncedCWTicket.setComments(jsonToCommentSet(jsonArray));
 
             // Get description from comments
