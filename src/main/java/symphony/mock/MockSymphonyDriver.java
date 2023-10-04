@@ -68,7 +68,7 @@ public class MockSymphonyDriver {
             System.out.println("MockSymphonyDriver: Complete ticket: " + ThirdPartyTicket);
             System.out.println("MockSymphonyDriver: SUCCESS TEST " + testNumber + "\n");
         } catch (Exception e) {
-            System.out.println("MockSymphonyDriver: FAIL TEST " + testNumber + " >> " + e.getMessage());
+            System.out.println("MockSymphonyDriver: FAIL TEST " + testNumber + " >> " + e.getClass() + ": " + e.getMessage());
         }
     }
 }
