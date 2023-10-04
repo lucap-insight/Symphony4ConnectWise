@@ -329,6 +329,7 @@ public class ConnectWiseTicket {
                     throw new TalAdapterSyncException("Cannot sync TAL ticket", status1);
 
                 } else {
+                    logger.info("refresh: adding connectionFailed extra parameter");
                     // If it's the first time failing add connectionFailed parameter
                     if (getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
                         // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
@@ -441,7 +442,7 @@ public class ConnectWiseTicket {
         }
 
         // Create new ticket on ConnectWise
-        logger.info("post: Attempting to create ticket on ConnectWise");
+        logger.info("post: Attempting to POST ticket on ConnectWise");
 
         // Check if URL and API_PATH are not null
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
@@ -479,7 +480,6 @@ public class ConnectWiseTicket {
         // Attempt creating ticket
         ConnectWiseTicket CWTicket= null;
         try {
-            logger.info("post: Attempting to POST ticket on ConnectWise");
             CWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(url, "POST", requestBody));
         }
         // I can catch any exception because there is already error handling in the ConnectWiseAPICall method
