@@ -579,10 +579,8 @@ public class TalAdapterImpl implements TalAdapter {
             RecoverableHttpStatus.add(502);
             RecoverableHttpStatus.add(503);
 
-            if (r.getHttpStatus() != null) {
-                if (RecoverableHttpStatus.contains(r.getHttpStatus().value())) {
-                    throw new TalRecoverableException(r, talTicket);
-                }
+            if (r.getHttpStatus() != null && RecoverableHttpStatus.contains(r.getHttpStatus().value())) {
+                throw new TalRecoverableException(r, talTicket);
             }
 
             throw new TalNotRecoverableException(r, talTicket);

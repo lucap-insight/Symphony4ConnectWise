@@ -118,7 +118,7 @@ public class ConnectWiseTicket {
     /**
      * List of recoverable HTTP statuses
      */
-    List<Integer> RecoverableHttpStatus;
+    private final List<Integer> RecoverableHttpStatus;
 
 
     //---------------------------------//
@@ -129,6 +129,7 @@ public class ConnectWiseTicket {
         setAttachments(new HashSet<>());
         setComments(new HashSet<>());
         setExtraParams(new HashMap<>());
+        RecoverableHttpStatus = new ArrayList<>();
     }
 
     public ConnectWiseTicket(TicketSystemConfig config, String symphonyId, String symphonyLink, String id, String url, Map<String, String> extraParams) {
@@ -222,10 +223,7 @@ public class ConnectWiseTicket {
                     method,
                     response != null ? response.statusCode() : "not specified");
 
-            if (response != null && response.statusCode() == 408) { // Re-try time-out calls
-                // This will turn into a recoverable exception
-                throw new TalAdapterSyncException("ConnectWiseAPICall: request timed-out", HttpStatus.REQUEST_TIMEOUT);
-            }
+            // Add HTTP status code response to error. It makes the error possibly recoverable
             throw new TalAdapterSyncException(method + " Request error",
                     response != null ? HttpStatus.valueOf(response.statusCode()) : null);
         }
@@ -269,15 +267,8 @@ public class ConnectWiseTicket {
             try {
                 syncedCWTicket = jsonToConnectWiseTicket(ConnectWiseAPICall(getUrl(), "GET", null));
 
-                // Update ticket number
-                int lastIndex = getUrl().lastIndexOf('/');
-                String temp_id;
-                if (lastIndex >= 0 && lastIndex < getUrl().length() -1 ) {
-                    temp_id = getUrl().substring(lastIndex + 1); // get ticket id from url
-                    if (!Objects.equals(temp_id, getId())) { // if IDs don't match
-                        setId(temp_id); // Update ticket id
-                        syncedCWTicket.setId(temp_id);
-                    }
+                if (!Objects.equals(syncedCWTicket.getId(), getId())) { // if IDs don't match
+                    setId(syncedCWTicket.getId()); // Update ticket id
                 }
 
             } catch (Exception e) {
@@ -298,7 +289,12 @@ public class ConnectWiseTicket {
                 if (getId() == null ||
                         config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                         config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
-                    logger.warn("refresh: Unable to form url - one of [URL, API_PATH, Ticket ID] is null");
+                    logger.error("refresh: Unable to form url - one of [URL, API_PATH, Ticket ID] is null");
+                    throw new TalAdapterSyncException("Unable to form URL with missing parameters:" +
+                            (getId() == null ? " ID" : "") +
+                            (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ? " URL":"") +
+                            (config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null? " API PATH":""),
+                        HttpStatus.BAD_REQUEST);
                 }
 
                 String URL = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
@@ -332,8 +328,9 @@ public class ConnectWiseTicket {
                             throw error;
                         }
                     }
-
+                    // if no recoverable errors were found just throw a TalAdapterSyncException
                     throw new TalAdapterSyncException("Cannot sync TAL ticket");
+
                 } else {
                     // If it's the first time failing add connectionFailed parameter
                     if (getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
@@ -359,6 +356,7 @@ public class ConnectWiseTicket {
             }
 
             logger.info("refresh: Attempting to retrieve comments");
+
             JSONArray jsonArray = ConnectWiseAPICall(getUrl() + "/notes", "GET", null).getJSONArray("JSONArray");
             syncedCWTicket.setComments(jsonToCommentSet(jsonArray));
 
@@ -366,7 +364,7 @@ public class ConnectWiseTicket {
             Optional<ConnectWiseComment> oldestDescriptionComment = syncedCWTicket.getComments()
                     .stream()
                     .filter(ConnectWiseComment::isDescriptionFlag)
-                    .min( Comparator.comparing(ConnectWiseComment::getLastModified));
+                    .min(Comparator.comparing(ConnectWiseComment::getLastModified));
             // Set description
             if (oldestDescriptionComment.isPresent()) {
                 logger.info("refresh: ticket description found");
@@ -845,7 +843,7 @@ public class ConnectWiseTicket {
                                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
                                 CWJsonTicket.getId());
         } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+            logger.info("jsonToConnectWiseTicket: id not found on ConnectWise");
         }
 
         // summary
