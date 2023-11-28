@@ -149,7 +149,7 @@ public class ConnectWiseTicket {
      * Performs an HTTP request call to ConnectWise API using credentials set in config
      * @param url the HTTP request URI
      * @param method the HTTP method (i.e. GET)
-     * @param requestBody the HTTP request's body
+     * @param requestBody String of the HTTP request's body
      * @return JSON object with the HTTP request response
      * @throws TalAdapterSyncException if request fails
      */

@@ -50,6 +50,16 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(503);
     }
 
+    public ConnectWiseClient(TicketSystemConfig config) {
+        this.config = config;
+
+        RecoverableHttpStatus = new ArrayList<Integer>();
+        RecoverableHttpStatus.add(408);
+        RecoverableHttpStatus.add(429);
+        RecoverableHttpStatus.add(502);
+        RecoverableHttpStatus.add(503);
+    }
+
     /**
      * Performs an HTTP request call to ConnectWise API using credentials set in config
      * @param url the HTTP request URI
