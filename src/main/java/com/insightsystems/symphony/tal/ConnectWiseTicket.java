@@ -30,9 +30,7 @@ import java.util.*;
  * @since 5.8
  */
 public class ConnectWiseTicket {
-    //-----------------------------------//
-    //* ---------- VARIABLES ---------- *//
-    //-----------------------------------//
+    //* ----------------------------- VARIABLES ----------------------------- *//
 
     /**
      * Logger instance
@@ -121,9 +119,7 @@ public class ConnectWiseTicket {
     private final List<Integer> RecoverableHttpStatus;
 
 
-    //---------------------------------//
-    //* ---------- METHODS ---------- *//
-    //---------------------------------//
+    //* ----------------------------- METHODS ----------------------------- *//
 
     public ConnectWiseTicket() {
         setAttachments(new HashSet<>());
@@ -506,10 +502,7 @@ public class ConnectWiseTicket {
     }
 
 
-    //----------------------------------------//
-    //* ---------- HELPER METHODS ---------- *//
-    //----------------------------------------//
-
+    //* ----------------------------- HELPER METHODS ----------------------------- *//
 
     /**
      * Creates patch string to Update ConnectWise value.
@@ -921,9 +914,7 @@ public class ConnectWiseTicket {
 
 
 
-    //-------------------------------------------//
-    //* ---------- GETTERS / SETTERS ---------- *//
-    //-------------------------------------------//
+    //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 
     public String getSymphonyId() {
         return symphonyId;

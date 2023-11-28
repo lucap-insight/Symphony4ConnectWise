@@ -1,6 +1,7 @@
 package com.insightsystems.symphony.tal;
 
 public class ConnectWiseComment {
+    //* ----------------------------- VARIABLES ----------------------------- *//
 
     private String symphonyId;
 
@@ -17,6 +18,9 @@ public class ConnectWiseComment {
     private boolean internalFlag;
 
     private boolean resolutionFlag;
+
+
+    //* ----------------------------- METHODS ----------------------------- *//
 
     public ConnectWiseComment(String text) {
         setText(text);
@@ -44,6 +48,9 @@ public class ConnectWiseComment {
         setInternalFlag(false);
         setResolutionFlag(false);
     }
+
+
+    //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 
     public String getSymphonyId() {
         return symphonyId;

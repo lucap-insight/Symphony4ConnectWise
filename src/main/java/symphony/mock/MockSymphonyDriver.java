@@ -35,24 +35,24 @@ public class MockSymphonyDriver {
         testNum ++;
 
         // ---------------------------  TEST : PATCH HALF --------------------------- //
-        // TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH HALF TICKET");
-        //testNum ++;
+        TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH HALF TICKET");
+        testNum ++;
 
         // --------------------------- TEST : POST --------------------------- //
-        //TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
-        //testNum ++;
+        TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
+        testNum ++;
 
         // --------------------------- TEST : POST LACKING INFO ---------------------------//
-        //TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
-        //testNum ++;
+        TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
+        testNum ++;
 
         // --------------------------- TEST : WRONG TICKET --------------------------- //
-        //TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
-        //testNum ++;
+        TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
+        testNum ++;
 
         // --------------------------- TEST : FAILED TICKET --------------------------- //
-        //TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
-        //testNum ++;
+        TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
+        testNum ++;
 
 
     }
