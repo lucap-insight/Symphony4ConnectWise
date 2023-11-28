@@ -25,6 +25,12 @@ public class TicketServiceImpl {
         this.CWClient = CWClient;
     }
 
+    /**
+     * Retrieves the latest information on ConnectWise
+     * @param CWTicket Ticket to be retrieved
+     * @return a new instance of ConnectWiseTicket with the latest information. Null if the ticket is not on CW.
+     * @throws TalAdapterSyncException
+     */
     public ConnectWiseTicket getNewestTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         throw new NotImplementedException();
     }
