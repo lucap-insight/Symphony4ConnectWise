@@ -153,7 +153,10 @@ public class TalAdapterImpl implements TalAdapter {
                 logger.warn("syncTalTicket: API_PATH not setup on Config");
             }
 
+            // Initialize components
             ConnectWiseTicket CWTicket = null;
+            ConnectWiseClient CWClient = new ConnectWiseClient(config);
+            TicketServiceImpl ticketService = new TicketServiceImpl(CWClient);
 
             // map status, priorities, users to comply with 3rd party ticketing system
             try {
@@ -164,17 +167,17 @@ public class TalAdapterImpl implements TalAdapter {
             }
 
             // 1. make call to ConnectWise and get live ticket data
-            ConnectWiseTicket refreshedCWTicket = CWTicket.refresh();
+            ConnectWiseTicket refreshedCWTicket = ticketService.getNewestTicket(CWTicket);
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
                 // Update it with the newest information
-                refreshedCWTicket.patch(CWTicket);
+                ticketService.updateTicket(CWTicket);
                 // Map ConnectWise ticket back to Symphony
                 TicketMapper.mapThirdPartyToSymphony(talTicket, refreshedCWTicket, config);
             } else {
                 // Otherwise, create new ticket
-                CWTicket.post();
+                ticketService.createTicket(CWTicket);
                 logger.info("syncTalTicket: remapping ticket to Symphony");
                 TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             }
