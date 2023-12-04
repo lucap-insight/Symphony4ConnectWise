@@ -146,6 +146,64 @@ public class ConnectWiseTicket {
     }
 
     /**
+     * Constructor from JSONObject
+     * @param jsonObject ConnectWise JSON ticket
+     */
+    public ConnectWiseTicket(JSONObject jsonObject) {
+        // id
+        try {
+            setId(jsonObject.getInt("id") + "");
+
+            setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
+                    getId());
+        } catch (JSONException e) {
+            logger.info("id not found on jsonObject");
+        }
+
+        // summary
+        try {
+            setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("summary not found on jsonObject");
+        }
+
+        // status
+        try {
+            setStatus(jsonObject.getJSONObject("status").getString("name"));
+        } catch (JSONException e) {
+            logger.info("status/name not found on jsonObject");
+        }
+
+        // priority
+        try {
+            setPriority(jsonObject.getJSONObject("priority").getInt("id") + "");
+        } catch (JSONException e) {
+            logger.info("priority/id not found on jsonObject");
+        }
+
+        // assignee
+        try {
+            setAssignedTo(jsonObject.getJSONObject("owner").getString("identifier"));
+        } catch (JSONException e) {
+            logger.info("owner/identifier not found on jsonObject");
+        }
+
+        // TODO: requester from ConnectWise
+        /*try {
+            CWJsonTicket.setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }*/
+
+        RecoverableHttpStatus = new ArrayList<Integer>();
+        RecoverableHttpStatus.add(408);
+        RecoverableHttpStatus.add(429);
+        RecoverableHttpStatus.add(502);
+        RecoverableHttpStatus.add(503);
+    }
+
+    /**
      * Performs an HTTP request call to ConnectWise API using credentials set in config
      * @param url the HTTP request URI
      * @param method the HTTP method (i.e. GET)
@@ -1043,6 +1101,34 @@ public class ConnectWiseTicket {
 
     public Set<ConnectWiseComment> getComments() {
         return Comments;
+    }
+
+    public void setComments(JSONArray jsonArray) {
+        DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
+
+        // for each ConnectWise comment:
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject JSONComment = jsonArray.getJSONObject(i);
+
+            // Parse date
+            LocalDateTime commentDate = LocalDateTime.parse(JSONComment.getString("dateCreated"),
+                    ConnectWiseDateTimeFormatter);
+            ZonedDateTime zdt = ZonedDateTime.of(commentDate, ZoneId.systemDefault());
+            long lastModified = zdt.toInstant().toEpochMilli();
+
+            ConnectWiseComment CWComment = new ConnectWiseComment(
+                    null,
+                    JSONComment.getInt("id") + "",
+                    JSONComment.getString("createdBy"),
+                    JSONComment.getString("text"),
+                    lastModified,
+                    JSONComment.getBoolean("detailDescriptionFlag"),
+                    JSONComment.getBoolean("internalAnalysisFlag"),
+                    JSONComment.getBoolean("resolutionFlag")
+            );
+
+            addComment(CWComment);
+        }
     }
 
     public void setComments(Set<ConnectWiseComment> comments) {
