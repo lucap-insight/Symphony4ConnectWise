@@ -1,9 +1,11 @@
 package com.insightsystems.symphony.tal;
 
+import com.avispl.symphony.api.tal.dto.Comment;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 import org.apache.commons.lang.NotImplementedException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -15,9 +17,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
 public class ConnectWiseClient {
 
@@ -162,12 +166,60 @@ public class ConnectWiseClient {
      * Does not alter the current instance.
      * Returns null if ticket was not found in ConnectWise.
      *
-     * @param Ticket The ticket to be refreshed
+     * @param url of the ticket to be refreshed
      * @return most updated version of Ticket retrieved from ConnectWise. Returns null if ticket is not on ConnectWise.
      * @throws TalAdapterSyncException if refresh fails and has failed before
      */
-    public ConnectWiseTicket refresh(ConnectWiseTicket Ticket) throws TalAdapterSyncException {
-        throw new NotImplementedException();
+    public ConnectWiseTicket GET(String url, ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // Attempt connection
+        JSONObject response = null;
+        ConnectWiseTicket refreshedCWTicket = null;
+
+        try {
+            response = ConnectWiseAPICall(url, "GET", null);
+        } catch (TalAdapterSyncException e) {
+            logger.error("GET: connection failed. Error: {}", e.getMessage());
+
+            // If connection already failed throw error
+            if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
+                throw e;
+        }
+
+        // If connection successful:
+        if (response != null) {
+            // Create new ticket and assign values
+            refreshedCWTicket = new ConnectWiseTicket(
+                    CWTicket.getConfig(), CWTicket.getSymphonyId(), CWTicket.getSymphonyLink(),
+                    CWTicket.getId(), CWTicket.getUrl(), CWTicket.getExtraParams()
+            );
+            jsonToConnectWiseTicket(response, refreshedCWTicket);
+
+            if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+                // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                CWTicket.getExtraParams().replace("connectionFailed","false");
+            }
+
+            // Attempting to get comments
+            logger.info("GET: retrieving comments");
+            JSONArray jsonArray = ConnectWiseAPICall(url + "/notes", "GET", null)
+                    .getJSONArray("JSONArray");
+            refreshedCWTicket.setComments(jsonToCommentSet(jsonArray));
+
+            // Set description
+            Optional<ConnectWiseComment> oldestDescriptionComment = refreshedCWTicket.getComments()
+                    .stream()
+                    .filter(ConnectWiseComment::isDescriptionFlag)
+                    .min(Comparator.comparing(ConnectWiseComment::getLastModified));
+            if (oldestDescriptionComment.isPresent()) {
+                logger.info("GET: ticket description found");
+                ConnectWiseComment description = oldestDescriptionComment.get();
+                refreshedCWTicket.setDescription(description);
+            } else {
+                logger.info("GET: ticket description not found");
+            }
+        }
+
+        return refreshedCWTicket;
     }
 
     /**
@@ -191,6 +243,100 @@ public class ConnectWiseClient {
 
 
     //* ----------------------------- HELPER METHODS ----------------------------- *//
+
+    /**
+     * Converts an HTTP response in JSON format to a ConnectWiseTicket object
+     *
+     * @param jsonObject Ticket ConnectWise API response
+     * @param CWJsonTicket ConnectWiseTicket to be infused with JSON information
+     * @return converted ticket
+     */
+    private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject, ConnectWiseTicket CWJsonTicket) {
+        // id
+        try {
+            CWJsonTicket.setId(jsonObject.getInt("id") + "");
+
+            CWJsonTicket.setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
+                    CWJsonTicket.getId());
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: id not found on ConnectWise");
+        }
+
+        // summary
+        try {
+            CWJsonTicket.setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }
+
+        // status
+        try {
+            CWJsonTicket.setStatus(jsonObject.getJSONObject("status").getString("name"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: status/name not found on ConnectWise");
+        }
+
+        // priority
+        try {
+            CWJsonTicket.setPriority(jsonObject.getJSONObject("priority").getInt("id") + "");
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: priority/id not found on ConnectWise");
+        }
+
+        // assignee
+        try {
+            CWJsonTicket.setAssignedTo(jsonObject.getJSONObject("owner").getString("identifier"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: owner/identifier not found on ConnectWise");
+        }
+
+        // TODO: requester from ConnectWise
+        /*try {
+            CWJsonTicket.setSummary(jsonObject.getString("summary"));
+        } catch (JSONException e) {
+            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        }*/
+
+        return CWJsonTicket;
+    }
+
+    /**
+     * Converts a JSON array of ConnectWise comments into a set of {@link Comment}s
+     *
+     * @param jsonArray JSON Array of CW comments
+     * @return Set of Comments of the ConnectWise Comments
+     */
+    private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) {
+        Set<ConnectWiseComment> JSONComments = new HashSet<>();
+        DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
+
+        // for each ConnectWise comment:
+        for (int i = 0; i < jsonArray.length(); i++) {
+            JSONObject JSONComment = jsonArray.getJSONObject(i);
+
+            // Parse date
+            LocalDateTime commentDate = LocalDateTime.parse(JSONComment.getString("dateCreated"),
+                    ConnectWiseDateTimeFormatter);
+            ZonedDateTime zdt = ZonedDateTime.of(commentDate, ZoneId.systemDefault());
+            long lastModified = zdt.toInstant().toEpochMilli();
+
+            ConnectWiseComment CWComment = new ConnectWiseComment(
+                    null,
+                    JSONComment.getInt("id") + "",
+                    JSONComment.getString("createdBy"),
+                    JSONComment.getString("text"),
+                    lastModified,
+                    JSONComment.getBoolean("detailDescriptionFlag"),
+                    JSONComment.getBoolean("internalAnalysisFlag"),
+                    JSONComment.getBoolean("resolutionFlag")
+            );
+
+            JSONComments.add(CWComment);
+        }
+
+        return JSONComments;
+    }
 
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
