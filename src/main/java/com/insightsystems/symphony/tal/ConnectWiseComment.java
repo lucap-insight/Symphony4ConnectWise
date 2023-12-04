@@ -24,6 +24,9 @@ public class ConnectWiseComment {
 
     public ConnectWiseComment(String text) {
         setText(text);
+        setDescriptionFlag(false);
+        setInternalFlag(true);
+        setResolutionFlag(false);
     }
 
     public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, Long lastModified,
@@ -45,7 +48,7 @@ public class ConnectWiseComment {
         setText(text);
         if (lastModified != null) setLastModified(lastModified);
         setDescriptionFlag(false);
-        setInternalFlag(false);
+        setInternalFlag(true);
         setResolutionFlag(false);
     }
 
