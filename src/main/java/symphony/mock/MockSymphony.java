@@ -41,10 +41,10 @@ public class MockSymphony{
         String thirdPartyId = "187562";
         String thirdPartyLink = null;
         String customerId = "";
-        String priority = "Minor";
+        String priority = "Major";
         String status = "Open";
-        String subject = "<TEST> TAL test ticket";
-        String description = "TEST tal ticket";//"Old TAL adapter test";
+        String subject = "<TEST> TAL test tickety";
+        String description = "TESTing tal ticket";//"Old TAL adapter test";
         String requester = "lucap@insightsystems.com.au";
         String assignedTo = "lucap@insightsystems.com.au";
         Set< Comment > comments = new HashSet<>();
