@@ -7,7 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
-import java.util.Objects;
+import java.util.*;
 
 public class TicketServiceImpl {
     //* ----------------------------- VARIABLES ----------------------------- *//
@@ -58,6 +58,7 @@ public class TicketServiceImpl {
 
             try{
                 refreshedCWTicket = CWClient.get(url);
+                CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
                 if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
                     throw e;
@@ -86,11 +87,10 @@ public class TicketServiceImpl {
     /**
      * Creates new ticket in ConnectWise with CWTicket's information.
      * Updates CWTicket with ConnectWise's url and ticket number
-     * @param CWTicket
-     * @return updated CWTicket
+     * @param CWTicket ticket to post
      * @throws TalAdapterSyncException
      */
-    public ConnectWiseTicket createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) { // If it's true
@@ -114,16 +114,240 @@ public class TicketServiceImpl {
 
     /**
      * Updates CW with the information in CWTicket
-     * @param CWTicket Ticket with the latest information from Symphony
+     * @param CWTicket Ticket with the latest information from Symphony. Gets updates as necessary to sync information
      * @param refreshedTicket Ticket to be updated
-     * @return
      */
-    public ConnectWiseTicket updateTicket(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
-        throw new NotImplementedException();
+    public void updateTicket(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
+        // HTTP PATCH
+        String patchRequest = "";
+        // summary
+        patchRequest += UpdateSummary(CWTicket, refreshedTicket, patchRequest);
+        // status
+        patchRequest += UpdateStatus(CWTicket, refreshedTicket, patchRequest);
+        // priority
+        patchRequest += UpdatePriority(CWTicket, refreshedTicket, patchRequest);
+        // assignee
+        patchRequest += UpdateAssignee(CWTicket, refreshedTicket, patchRequest);
+        // requester
+        // TODO: patchRequest += UpdateRequester(CWTicket, patchRequest);
+
+        if (!patchRequest.isEmpty()) {
+            patchRequest = "[" + patchRequest + "]"; // Final request formatting
+            logger.info("updateTicket: Making PATCH request");
+            try {
+                CWClient.patch(CWTicket.getUrl(), patchRequest);
+            } catch (Exception e) {
+                logger.error("updateTicket: PATCH request failed");
+                throw e;
+            }
+        } else {
+            logger.info("updateTicket: No API call made");
+        }
+
+        patchDescription(CWTicket, refreshedTicket);
+
+        CWClient.patchComments(CWTicket, refreshedTicket);
     }
 
 
     //* ----------------------------- HELPER METHODS ----------------------------- *//
+
+    /**
+     * Creates patch string to Update ConnectWise value.
+     * Updates Symphony if necessary.
+     *
+     * @param CWTicket Symphony ticket with the latest information
+     * @param refreshedTicket Ticket retrieved from CW
+     * @param patchRequest
+     * @return PATCH string
+     */
+    private String UpdateSummary(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+        String returnVal = "";
+
+        // If summaries are not the same
+        if (!Objects.equals( CWTicket.getSummary(), refreshedTicket.getSummary())) {
+            if (refreshedTicket.setSummary( CWTicket.getSummary() )) {
+                logger.info("updateSummary: updating CW summary");
+                returnVal = " {\n" +
+                        "        \"op\": \"replace\",\n" +
+                        "        \"path\": \"summary\",\n" +
+                        "        \"value\": \"" + CWTicket.getSummary() + "\"\n" +
+                        "    }\n";
+
+            } else if (CWTicket.getDescription() != null) { // if Symphony value is null
+                logger.info("updateSummary: updating CW summary to symphony description");
+                refreshedTicket.setSummary( CWTicket.getDescription().getText() ); // set summary to description
+                returnVal = " {\n" +
+                        "        \"op\": \"replace\",\n" +
+                        "        \"path\": \"summary\",\n" +
+                        "        \"value\": \"" + refreshedTicket.getSummary() + "\"\n" +
+                        "    }\n";
+
+            } else if ( refreshedTicket.getSummary() != null ) { // if Symphony has null values but CW doesn't - update Symphony
+                logger.info("updateSummary: updating Symphony summary");
+                CWTicket.setSummary( refreshedTicket.getSummary() );
+            }
+        }
+
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
+        return returnVal;
+    }
+
+    /**
+     * Creates patch string to Update ConnectWise value.
+     * Updates Symphony if necessary.
+     *
+     * @param CWTicket Symphony ticket with the latest information
+     * @param refreshedTicket Ticket retrieved from CW
+     * @param patchRequest
+     * @return PATCH string
+     */
+    private String UpdateStatus(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+        String returnVal = "";
+
+        if (!Objects.equals( refreshedTicket.getStatus(), CWTicket.getStatus() )) {
+            String op = (refreshedTicket.getStatus() == null ? "add" : "replace");
+            String previousStatus = refreshedTicket.getStatus();
+
+            if ( refreshedTicket.setStatus(CWTicket.getStatus()) ) {
+                logger.info("updateStatus: updating status from {} to {}", previousStatus, CWTicket.getStatus());
+                returnVal = " {\n" +
+                        "        \"op\": \"" + op + "\",\n" +
+                        "        \"path\": \"status/name\",\n" +
+                        "        \"value\": \"" + CWTicket.getStatus() + "\"\n" +
+                        "    }\n";
+            } else {
+                logger.info("updateStatus: updating Symphony status from {} to {}", CWTicket.getStatus(), refreshedTicket.getStatus());
+                CWTicket.setStatus( refreshedTicket.getStatus() );
+            }
+        }
+
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
+        return returnVal;
+    }
+
+    /**
+     * Creates patch string to Update ConnectWise value.
+     * Updates Symphony if necessary.
+     *
+     * @param CWTicket Symphony ticket with the latest information
+     * @param refreshedTicket Ticket retrieved from CW
+     * @param patchRequest
+     * @return PATCH string
+     */
+    private String UpdatePriority(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+        String returnVal = "";
+
+        if (!Objects.equals( refreshedTicket.getPriority(), CWTicket.getPriority() )) {
+            String op = (refreshedTicket.getPriority() == null ? "add" : "replace");
+            String CWPriority = CWClient.getConfig().getPriorityMappingForSymphony().get(refreshedTicket.getPriority());
+
+            if ( refreshedTicket.setPriority(CWTicket.getPriority()) ) {
+                logger.info("updatePriority: updating CW priority from {} to {}",
+                        CWPriority,
+                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
+                returnVal = " {\n" +
+                        "        \"op\": \"" + op + "\",\n" +
+                        "        \"path\": \"priority/id\",\n" +
+                        "        \"value\": \"" + CWTicket.getPriority() + "\"\n" +
+                        "    }\n";
+
+                // Add comment for change in priority
+                String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
+                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority());
+                ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
+                        null,
+                        false, true, false);
+                CWTicket.addComment(priorityChange);
+
+            } else {
+                logger.info("updatePriority: updating Symphony priority from {} to {}",
+                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()),
+                        CWClient.getConfig().getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
+                CWTicket.setPriority( refreshedTicket.getPriority() );
+            }
+        }
+
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
+        return returnVal;
+    }
+
+    /**
+     * Creates patch string to Update ConnectWise value.
+     * Updates Symphony if necessary.
+     *
+     * @param CWTicket Symphony ticket with the latest information
+     * @param refreshedTicket Ticket retrieved from CW
+     * @param patchRequest
+     * @return PATCH string
+     */
+    private String UpdateAssignee(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+        String returnVal = "";
+
+        if (!Objects.equals( refreshedTicket.getAssignee(), CWTicket.getAssignee() )) {
+
+            String op = (refreshedTicket.getAssignee() == null ? "add" : "replace");
+
+            if ( refreshedTicket.setAssignedTo(CWTicket.getAssignee()) ) {
+                logger.info("updateAssignee: updating CW assignee");
+                returnVal = " {\n" +
+                        "        \"op\": \"" + op + "\",\n" +
+                        "        \"path\": \"owner/identifier\",\n" +
+                        "        \"value\": \"" + CWTicket.getAssignee() + "\"\n" +
+                        "    }\n";
+            } else {
+                logger.info("updateAssignee: updating Symphony assignee");
+                CWTicket.setAssignedTo( refreshedTicket.getAssignee() );
+            }
+        }
+
+        // Add , before if pathRequest had something
+        if (!returnVal.isEmpty() && !patchRequest.isEmpty())
+            returnVal = ",\n" + returnVal;
+
+        return returnVal;
+    }
+
+    private void patchDescription(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) {
+        // Check if CW Comment exists
+        if (refreshedTicket.getDescription() == null) {
+            // If CW does not have a description comment, create one
+            logger.info("updateDescription: ConnectWise description comment not found. Creating new comment");
+            CWClient.postDescription(CWTicket);
+        }
+        else {
+            // Compare texts
+            if (CWTicket.getDescription() != null &&
+                    !Objects.equals(refreshedTicket.getDescription().getText(), CWTicket.getDescription().getText())) {
+                // If not equal: Update text
+                String body = "[ {\n" +
+                        "        \"op\": \"replace\",\n" +
+                        "        \"path\": \"text\",\n" +
+                        "        \"value\": \"" + CWTicket.getDescription().getText() + "\"\n" +
+                        "    }]";
+                logger.info("updateDescription: Attempting PATCH request");
+                try {
+                    CWClient.patch(CWTicket.getUrl() + "/notes/" + refreshedTicket.getDescription().getThirdPartyId(),
+                            body);
+                } catch (TalAdapterSyncException e) {
+                    logger.error("patchDescription: CW API Call error - unable to sync description. Http error code: {}",
+                            e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
+                }
+            } else if (CWTicket.getDescription() == null) {
+                // If they are equal or symphony doesn't exist:
+                CWTicket.setDescription(refreshedTicket.getDescription() );
+            }
+        }
+    }
 
     /**
      * Throws a TalAdapterSyncException if the URL formed using the parameters contains any nulls
