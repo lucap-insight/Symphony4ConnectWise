@@ -67,7 +67,7 @@ public class TicketServiceImpl {
 
         if (refreshedCWTicket == null) {
             // Log error
-            logger.error("getNewestTicket: Both API attempts unsuccessful, adding connectionFailed extra parameter");
+            logger.warn("getNewestTicket: Both API attempts unsuccessful, adding connectionFailed extra parameter");
             // If it's the first time failing add connectionFailed parameter
             if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
                 // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
@@ -109,7 +109,6 @@ public class TicketServiceImpl {
         CWClient.post(CWTicket);
 
         // CWClient.post(JSON);
-        throw new NotImplementedException();
     }
 
     /**
