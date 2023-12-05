@@ -170,40 +170,26 @@ public class ConnectWiseClient {
      * @return most updated version of Ticket retrieved from ConnectWise. Returns null if ticket is not on ConnectWise.
      * @throws TalAdapterSyncException if refresh fails and has failed before
      */
-    public ConnectWiseTicket GET(String url, ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public ConnectWiseTicket get(String url) throws TalAdapterSyncException {
         // Attempt connection
         JSONObject response = null;
         ConnectWiseTicket refreshedCWTicket = null;
 
-        try {
-            response = ConnectWiseAPICall(url, "GET", null);
-        } catch (TalAdapterSyncException e) {
-            logger.error("GET: connection failed. Error: {}", e.getMessage());
-
-            // If connection already failed throw error
-            if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
-                throw e;
-        }
+        response = ConnectWiseAPICall(url, "GET", null);
 
         // If connection successful:
         if (response != null) {
             // Create new ticket and assign values
-            refreshedCWTicket = new ConnectWiseTicket(
-                    CWTicket.getConfig(), CWTicket.getSymphonyId(), CWTicket.getSymphonyLink(),
-                    CWTicket.getId(), CWTicket.getUrl(), CWTicket.getExtraParams()
-            );
-            jsonToConnectWiseTicket(response, refreshedCWTicket);
-
-            if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
-                // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                CWTicket.getExtraParams().replace("connectionFailed","false");
-            }
+            refreshedCWTicket = new ConnectWiseTicket(response);
+            refreshedCWTicket.setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
+                    refreshedCWTicket.getId());
 
             // Attempting to get comments
             logger.info("GET: retrieving comments");
             JSONArray jsonArray = ConnectWiseAPICall(url + "/notes", "GET", null)
                     .getJSONArray("JSONArray");
-            refreshedCWTicket.setComments(jsonToCommentSet(jsonArray));
+            refreshedCWTicket.setComments(jsonArray);
 
             // Set description
             Optional<ConnectWiseComment> oldestDescriptionComment = refreshedCWTicket.getComments()
