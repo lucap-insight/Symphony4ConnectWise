@@ -3,7 +3,6 @@ package com.insightsystems.symphony.tal;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import org.apache.commons.lang.NotImplementedException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -67,7 +66,7 @@ public class ConnectWiseClient {
      * @return JSON object with the HTTP request response
      * @throws TalAdapterSyncException if request fails
      */
-    public JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
+    private JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
         // Optional: Formalize input error checking on ConnectWiseAPICall
 
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
@@ -170,6 +169,7 @@ public class ConnectWiseClient {
         JSONObject response = null;
         ConnectWiseTicket refreshedCWTicket = null;
 
+        logger.info("get: retrieving ticket");
         response = ConnectWiseAPICall(url, "GET", null);
 
         // If connection successful:
@@ -181,7 +181,7 @@ public class ConnectWiseClient {
                     refreshedCWTicket.getId());
 
             // Attempting to get comments
-            logger.info("GET: retrieving comments");
+            logger.info("get: retrieving comments");
             JSONArray jsonArray = ConnectWiseAPICall(url + "/notes", "GET", null)
                     .getJSONArray("JSONArray");
             refreshedCWTicket.setComments(jsonArray);
@@ -192,11 +192,11 @@ public class ConnectWiseClient {
                     .filter(ConnectWiseComment::isDescriptionFlag)
                     .min(Comparator.comparing(ConnectWiseComment::getLastModified));
             if (oldestDescriptionComment.isPresent()) {
-                logger.info("GET: ticket description found");
+                logger.info("get: ticket description found");
                 ConnectWiseComment description = oldestDescriptionComment.get();
                 refreshedCWTicket.setDescription(description);
             } else {
-                logger.info("GET: ticket description not found");
+                logger.info("get: ticket description not found");
             }
         }
 
@@ -204,17 +204,16 @@ public class ConnectWiseClient {
     }
 
     /**
-     * Updates this ticket based on CWTicket.
-     * Makes changes to CWTicket as necessary.
-     *
-     * @param CWTicket ticket with the updated information
+     * Updates CWTicket based on requestBody with a PATCH API call
+     * @param url to update
+     * @param requestBody PATCH call request body
      */
-    public void patch(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
-        throw new NotImplementedException();
+    public void patch(String url, String requestBody) throws TalAdapterSyncException {
+        ConnectWiseAPICall(url, "PATCH", requestBody);
     }
 
     /**
-     * Posts this ticket to ConnectWise.
+     * Posts this ticket and its comments to ConnectWise.
      *
      * @param CWTicket ticket to post to ConnectWise
      * @throws TalAdapterSyncException if posting ticket failed
@@ -269,7 +268,7 @@ public class ConnectWiseClient {
         postDescription(CWTicket);
 
         // POST comments
-        updateComments(CWTicket, newTicket);
+        patchComments(CWTicket, newTicket);
     }
 
 
@@ -281,9 +280,8 @@ public class ConnectWiseClient {
      * @param CWTicket ticket with updated Symphony information
      * @param newTicket ticket to be updated
      */
-    private void updateComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
+    public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
         // Go for every Symphony ticket
-        logger.info("updateComments: syncing comments");
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
         Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator();
         ConnectWiseComment SymphonyComment;
@@ -307,7 +305,7 @@ public class ConnectWiseClient {
 
                         // Update text in CW
                         try {
-                            logger.info("updateComments: Attempting to update comment");
+                            logger.info("patchComments: Attempting to update comment");
                             String body = "[ {\n" +
                                     "        \"op\": \"replace\",\n" +
                                     "        \"path\": \"text\",\n" +
@@ -315,7 +313,9 @@ public class ConnectWiseClient {
                                     "    }]";
                             ConnectWiseAPICall(newTicket.getUrl() + "/notes/" + CWComment.getThirdPartyId(), "PATCH", body);
                         } catch (TalAdapterSyncException e) {
-                            logger.error("updateComments: Attempt failed");
+                            logger.error("patchComments: Attempt failed. HTTP error {} - {}",
+                                    e.getHttpStatus() != null ? e.getHttpStatus() : "not specified",
+                                    e.getMessage());
                         }
                     }
                 }
@@ -367,7 +367,7 @@ public class ConnectWiseClient {
      * Posts description comment in ConnectWise using the ticket's url
      * @param CWTicket Ticket with description to be added to CW
      */
-    private void postDescription(ConnectWiseTicket CWTicket) {
+    public void postDescription(ConnectWiseTicket CWTicket) {
         String description = "New Symphony ticket: No description found";
         if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
         String requestBody = "{\n" +
@@ -392,6 +392,7 @@ public class ConnectWiseClient {
                     e.getMessage());
         }
     }
+
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 
