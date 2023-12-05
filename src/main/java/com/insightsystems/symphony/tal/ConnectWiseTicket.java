@@ -154,9 +154,6 @@ public class ConnectWiseTicket {
         try {
             setId(jsonObject.getInt("id") + "");
 
-            setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
-                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
-                    getId());
         } catch (JSONException e) {
             logger.info("id not found on jsonObject");
         }
@@ -196,6 +193,11 @@ public class ConnectWiseTicket {
             logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
         }*/
 
+
+
+        setComments(new HashSet<>());
+        setAttachments(new HashSet<>());
+        setExtraParams(new HashMap<>());
         RecoverableHttpStatus = new ArrayList<Integer>();
         RecoverableHttpStatus.add(408);
         RecoverableHttpStatus.add(429);
@@ -203,14 +205,7 @@ public class ConnectWiseTicket {
         RecoverableHttpStatus.add(503);
     }
 
-    /**
-     * Performs an HTTP request call to ConnectWise API using credentials set in config
-     * @param url the HTTP request URI
-     * @param method the HTTP method (i.e. GET)
-     * @param requestBody String of the HTTP request's body
-     * @return JSON object with the HTTP request response
-     * @throws TalAdapterSyncException if request fails
-     */
+    // TODO: DELETE
     public JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
         // Optional: Formalize input error checking on ConnectWiseAPICall
 
@@ -301,14 +296,7 @@ public class ConnectWiseTicket {
     }
 
 
-    /**
-     * Creates and returns a new ConnectWiseTicket instance with the newest ticket information from ConnectWise.
-     * Does not alter the current instance.
-     * Returns null if ticket was not found in ConnectWise.
-     *
-     * @return most updated version of this ticket retrieved from ConnectWise
-     * @throws TalAdapterSyncException if refresh fails and has failed before
-     */
+    // TODO: DELETE
     public ConnectWiseTicket refresh() throws TalAdapterSyncException {
         // Declare synced ticket
         ConnectWiseTicket syncedCWTicket = null;
@@ -435,12 +423,7 @@ public class ConnectWiseTicket {
         return syncedCWTicket;
     }
 
-    /**
-     * Updates this ticket based on CWTicket.
-     * Makes changes to CWTicket as necessary.
-     *
-     * @param CWTicket ticket with the updated information
-     */
+    // TODO: DELETE
     public void patch(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // Update Symphony ID and Link
         setSymphonyId(CWTicket.getSymphonyId());
@@ -485,9 +468,7 @@ public class ConnectWiseTicket {
         // Space for code
     }
 
-    /**
-     * Posts this ticket to ConnectWise.
-     */
+    // TODO: DELETE
     public void post() throws TalAdapterSyncException {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
@@ -562,14 +543,7 @@ public class ConnectWiseTicket {
 
     //* ----------------------------- HELPER METHODS ----------------------------- *//
 
-    /**
-     * Creates patch string to Update ConnectWise value.
-     * Updates Symphony if necessary.
-     *
-     * @param SymphonyTicket Symphony updated ticket
-     * @param patchRequest
-     * @return PATCH string
-     */
+    // TODO: DELETE
     private String UpdateSummary(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
@@ -605,14 +579,7 @@ public class ConnectWiseTicket {
         return returnVal;
     }
 
-    /**
-     * Creates patch string to Update ConnectWise value
-     * Updates Symphony if necessary.
-     *
-     * @param SymphonyTicket Symphony updated ticket
-     * @param patchRequest
-     * @return PATCH string
-     */
+    // TODO: DELETE
     private String UpdateStatus(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
@@ -640,14 +607,7 @@ public class ConnectWiseTicket {
         return returnVal;
     }
 
-    /**
-     * Creates patch string to Update ConnectWise value
-     * Updates Symphony if necessary.
-     *
-     * @param SymphonyTicket Symphony updated ticket
-     * @param patchRequest
-     * @return PATCH string
-     */
+    // TODO: DELETE
     private String UpdatePriority(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
@@ -688,14 +648,7 @@ public class ConnectWiseTicket {
         return returnVal;
     }
 
-    /**
-     * Creates patch string to Update ConnectWise value
-     * Updates Symphony if necessary.
-     *
-     * @param SymphonyTicket Symphony updated ticket
-     * @param patchRequest
-     * @return PATCH string
-     */
+    // TODO: DELETE
     private String UpdateAssignee(ConnectWiseTicket SymphonyTicket, String patchRequest) {
         String returnVal = "";
 
@@ -723,10 +676,7 @@ public class ConnectWiseTicket {
         return returnVal;
     }
 
-    /**
-     * Updates ConnectWise description based on SymphonyTicket
-     * @param SymphonyTicket Ticket coming from Symphony with most updated information.
-     */
+    // TODO: DELETE
     private void updateDescription(ConnectWiseTicket SymphonyTicket) throws TalAdapterSyncException {
         // Check if CW Comment exists
         if (getDescription() != null)
@@ -788,11 +738,7 @@ public class ConnectWiseTicket {
         }
     }
 
-    /**
-     * Updates ConnectWise comments based on SymphonyTicket.
-     * No comment flow from ConnectWise to Symphony.
-     * @param SymphonyTicket ticket with updated Symphony information
-     */
+    // TODO: DELETE
     private void updateComments(ConnectWiseTicket SymphonyTicket) {
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
@@ -875,12 +821,7 @@ public class ConnectWiseTicket {
         }
     }
 
-    /**
-     * Converts an HTTP response in JSON format to a ConnectWiseTicket object
-     *
-     * @param jsonObject Ticket ConnectWise API response
-     * @return converted ticket
-     */
+    // TODO: DELETE
     private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject) {
         ConnectWiseTicket CWJsonTicket = new ConnectWiseTicket(getConfig(), getSymphonyId(), getSymphonyLink(), getId(), getUrl(), getExtraParams());
 
@@ -933,12 +874,7 @@ public class ConnectWiseTicket {
         return CWJsonTicket;
     }
 
-    /**
-     * Converts a JSON array of ConnectWise comments into a set of {@link Comment}s
-     *
-     * @param jsonArray JSON Array of CW comments
-     * @return Set of Comments of the ConnectWise Comments
-     */
+    // TODO: DELETE
     private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) {
         Set<ConnectWiseComment> JSONComments = new HashSet<>();
         DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
