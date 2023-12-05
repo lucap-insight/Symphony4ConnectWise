@@ -91,7 +91,22 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException
      */
     public ConnectWiseTicket createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
-        // Prepare JSON
+        // CHANGE SUMMARY IF TICKET HAS FAILED
+        if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
+                Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) { // If it's true
+            CWTicket.setSummary("ERROR: previous ticket not found - " + CWTicket.getSummary());
+        }
+
+        // Adding initial priority comment
+        ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
+                String.format("Initial ticket priority: %s",
+                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority())),
+                null);
+        CWTicket.addComment(initialPriorityComment);
+
+        // Create new ticket on ConnectWise
+        logger.info("createTicket: Attempting to POST ticket on ConnectWise");
+        CWClient.post(CWTicket);
 
         // CWClient.post(JSON);
         throw new NotImplementedException();
