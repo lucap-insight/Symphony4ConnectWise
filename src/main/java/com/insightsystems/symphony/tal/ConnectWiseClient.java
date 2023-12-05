@@ -1,6 +1,5 @@
 package com.insightsystems.symphony.tal;
 
-import com.avispl.symphony.api.tal.dto.Comment;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
@@ -17,10 +16,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 public class ConnectWiseClient {
@@ -30,7 +25,7 @@ public class ConnectWiseClient {
     /**
      * Logger instance
      */
-    private static final Logger logger = LoggerFactory.getLogger(ConnectWiseTicket.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConnectWiseClient.class);
 
     /**
      * Instance of TicketSystemConfig that contains mappings and destination
@@ -168,7 +163,7 @@ public class ConnectWiseClient {
      *
      * @param url of the ticket to be refreshed
      * @return most updated version of Ticket retrieved from ConnectWise. Returns null if ticket is not on ConnectWise.
-     * @throws TalAdapterSyncException if refresh fails and has failed before
+     * @throws TalAdapterSyncException if refresh fails
      */
     public ConnectWiseTicket get(String url) throws TalAdapterSyncException {
         // Attempt connection
@@ -221,109 +216,182 @@ public class ConnectWiseClient {
     /**
      * Posts this ticket to ConnectWise.
      *
+     * @param CWTicket ticket to post to ConnectWise
      * @throws TalAdapterSyncException if posting ticket failed
      */
-    public void post() throws TalAdapterSyncException {
-        throw new NotImplementedException();
+    public void post(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // Check if URL and API_PATH are not null
+        if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+            logger.error("post: URL or API_PATH not setup on Config");
+            throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config");
+        }
+
+        String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH);
+
+        // FIXME: Get board and company from ticketSourceConfig/TalConfigService
+        String requestBody = "{\n" +
+                "    \"summary\" : \"" + CWTicket.getSummary() + "\",\n" +
+                "    \"board\" : {\n" +
+                "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
+                "    },\n" +
+                "    \"company\": {\n" +
+                "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
+                "    }" +
+                (CWTicket.getStatus() != null ?
+                ",\n" +
+                "    \"status\" : {\n" +
+                "        \"name\": \""+ CWTicket.getStatus() +"\"\n" +
+                "    }" : "\n") +
+                (CWTicket.getAssignee() != null ?
+                ",\n" +
+                "    \"owner\" : {\n" +
+                "        \"identifier\": \""+ CWTicket.getAssignee() +"\"\n" +
+                "    }" : "\n") +
+                (CWTicket.getPriority() != null ?
+                ",\n" +
+                "    \"priority\" : {\n" +
+                "        \"id\": "+ CWTicket.getPriority() +"\n" +
+                "    }\n" : "\n") +
+                //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
+                "}";
+
+        JSONObject response = ConnectWiseAPICall(url, "POST", requestBody);
+        ConnectWiseTicket newTicket = new ConnectWiseTicket(response);
+        newTicket.setUrl(url + "/" + newTicket.getId());
+
+        // Update CWTicket
+        CWTicket.setId(newTicket.getId());
+        CWTicket.setUrl(newTicket.getUrl());
+
+        // POST description
+        postDescription(CWTicket);
+
+        // POST comments
+        updateComments(CWTicket, newTicket);
     }
 
 
     //* ----------------------------- HELPER METHODS ----------------------------- *//
 
     /**
-     * Converts an HTTP response in JSON format to a ConnectWiseTicket object
-     *
-     * @param jsonObject Ticket ConnectWise API response
-     * @param CWJsonTicket ConnectWiseTicket to be infused with JSON information
-     * @return converted ticket
+     * Updates ConnectWise comments based on SymphonyTicket.
+     * No comment flow from ConnectWise to Symphony.
+     * @param CWTicket ticket with updated Symphony information
+     * @param newTicket ticket to be updated
      */
-    private ConnectWiseTicket jsonToConnectWiseTicket(JSONObject jsonObject, ConnectWiseTicket CWJsonTicket) {
-        // id
-        try {
-            CWJsonTicket.setId(jsonObject.getInt("id") + "");
+    private void updateComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
+        // Go for every Symphony ticket
+        logger.info("updateComments: syncing comments");
+        Set<ConnectWiseComment> commentsToPost = new HashSet<>();
+        Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator();
+        ConnectWiseComment SymphonyComment;
+        while ( itr.hasNext() ) {
+            SymphonyComment = itr.next();
+            boolean commentFound = false;
 
-            CWJsonTicket.setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
-                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
-                    CWJsonTicket.getId());
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: id not found on ConnectWise");
+            // Check if ticket exists in ConnectWise
+            for (ConnectWiseComment CWComment : newTicket.getComments()) {
+                // If it exists, and it's not the description: update CW ticket
+                if (SymphonyComment.getThirdPartyId() != null && // if it has a CW ID
+                        !Objects.equals( SymphonyComment.getThirdPartyId(), newTicket.getDescription().getThirdPartyId() ) && // It's not the description
+                        Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) { // And CW ID matches
+                    commentFound = true;
+                    CWComment.setSymphonyId( SymphonyComment.getSymphonyId() ); // Keep Symphony ID
+
+                    // API call PATCH
+                    if (!Objects.equals( SymphonyComment.getText(), CWComment.getText() )) { // if text is not the same
+                        // Update text in TAL
+                        CWComment.setText( SymphonyComment.getText() );
+
+                        // Update text in CW
+                        try {
+                            logger.info("updateComments: Attempting to update comment");
+                            String body = "[ {\n" +
+                                    "        \"op\": \"replace\",\n" +
+                                    "        \"path\": \"text\",\n" +
+                                    "        \"value\": \"" + SymphonyComment.getText() + "\"\n" +
+                                    "    }]";
+                            ConnectWiseAPICall(newTicket.getUrl() + "/notes/" + CWComment.getThirdPartyId(), "PATCH", body);
+                        } catch (TalAdapterSyncException e) {
+                            logger.error("updateComments: Attempt failed");
+                        }
+                    }
+                }
+            }
+
+            if (!commentFound)
+                commentsToPost.add(SymphonyComment);
         }
 
-        // summary
-        try {
-            CWJsonTicket.setSummary(jsonObject.getString("summary"));
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
+        if ( !commentsToPost.isEmpty() ) {
+            // POST Ticket
+            logger.info("updateComments: Posting {} new comments to ConnectWise",
+                    commentsToPost.size());
+
+            String requestBody = "";
+
+            for ( ConnectWiseComment CWComment : commentsToPost ) {
+
+                requestBody = "{\n" +
+                        "    \"text\" : \"" + CWComment.getText() + "\",\n" +
+                        "    \"detailDescriptionFlag\": " + CWComment.isDescriptionFlag() + ",\n" +
+                        "    \"internalAnalysisFlag\": " + CWComment.isInternalFlag() + ",\n" +
+                        "    \"resolutionFlag\": " + CWComment.isResolutionFlag() +
+                        (CWComment.getCreator() != null ? // Make sure comment creator is not null
+                            ",\n" +
+                            "    \"member\": {\n" +
+                            "        \"identifier\": \"" + CWComment.getCreator() + "\"\n" +
+                            "    }\n" : "\n") +
+                        "}";
+
+                try {
+                    JSONObject jsonObject = ConnectWiseAPICall(CWTicket.getUrl() + "/notes", "POST", requestBody);
+                    // Add ThirdParty ticket ID to ticket
+                    logger.info("updateComments: POST Successful. Updating Comment ID on Symphony");
+                    CWComment.setThirdPartyId(jsonObject.getInt("id") + "");
+                } catch (TalAdapterSyncException e) {
+                    logger.error("updateComments: Unable to POST comment Symphony ID: {}. HTTP error: {}",
+                            CWComment.getSymphonyId(),
+                            e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
+                }
+            }
+            logger.info("updateComments: Finished POSTing comments");
+        } else {
+            logger.info("updateComments: No comments to POST");
         }
-
-        // status
-        try {
-            CWJsonTicket.setStatus(jsonObject.getJSONObject("status").getString("name"));
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: status/name not found on ConnectWise");
-        }
-
-        // priority
-        try {
-            CWJsonTicket.setPriority(jsonObject.getJSONObject("priority").getInt("id") + "");
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: priority/id not found on ConnectWise");
-        }
-
-        // assignee
-        try {
-            CWJsonTicket.setAssignedTo(jsonObject.getJSONObject("owner").getString("identifier"));
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: owner/identifier not found on ConnectWise");
-        }
-
-        // TODO: requester from ConnectWise
-        /*try {
-            CWJsonTicket.setSummary(jsonObject.getString("summary"));
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
-        }*/
-
-        return CWJsonTicket;
     }
 
     /**
-     * Converts a JSON array of ConnectWise comments into a set of {@link Comment}s
-     *
-     * @param jsonArray JSON Array of CW comments
-     * @return Set of Comments of the ConnectWise Comments
+     * Posts description comment in ConnectWise using the ticket's url
+     * @param CWTicket Ticket with description to be added to CW
      */
-    private Set<ConnectWiseComment> jsonToCommentSet(JSONArray jsonArray) {
-        Set<ConnectWiseComment> JSONComments = new HashSet<>();
-        DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
+    private void postDescription(ConnectWiseTicket CWTicket) {
+        String description = "New Symphony ticket: No description found";
+        if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
+        String requestBody = "{\n" +
+                "    \"text\" : \"" + description + "\",\n" +
+                "    \"detailDescriptionFlag\": true,\n" + // It's the description
+                "    \"internalAnalysisFlag\": false,\n" +
+                "    \"resolutionFlag\": false" +
+                (CWTicket.getRequester() != null ? // make sure ticket requester is not null
+                    ",\n" +
+                    "    \"member\": {\n" +
+                    "        \"identifier\": \"" + CWTicket.getRequester() + "\"\n" +
+                    "    }\n"
+                    : "\n") +
+                "}";
 
-        // for each ConnectWise comment:
-        for (int i = 0; i < jsonArray.length(); i++) {
-            JSONObject JSONComment = jsonArray.getJSONObject(i);
-
-            // Parse date
-            LocalDateTime commentDate = LocalDateTime.parse(JSONComment.getString("dateCreated"),
-                    ConnectWiseDateTimeFormatter);
-            ZonedDateTime zdt = ZonedDateTime.of(commentDate, ZoneId.systemDefault());
-            long lastModified = zdt.toInstant().toEpochMilli();
-
-            ConnectWiseComment CWComment = new ConnectWiseComment(
-                    null,
-                    JSONComment.getInt("id") + "",
-                    JSONComment.getString("createdBy"),
-                    JSONComment.getString("text"),
-                    lastModified,
-                    JSONComment.getBoolean("detailDescriptionFlag"),
-                    JSONComment.getBoolean("internalAnalysisFlag"),
-                    JSONComment.getBoolean("resolutionFlag")
-            );
-
-            JSONComments.add(CWComment);
+        try {
+            JSONObject newDescription = ConnectWiseAPICall(CWTicket.getUrl() + "/notes", "POST", requestBody);
+            CWTicket.AddJSONDescription(newDescription);
+        } catch (TalAdapterSyncException e) {
+            logger.error("postDescription: Error posting description comment. Code {} - {}",
+                    e.getHttpStatus() == null ? "not specified" : e.getHttpStatus(),
+                    e.getMessage());
         }
-
-        return JSONComments;
     }
-
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 
