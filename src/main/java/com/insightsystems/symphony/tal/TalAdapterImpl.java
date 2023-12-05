@@ -4,15 +4,6 @@
 
 package com.insightsystems.symphony.tal;
 
-import java.io.IOException;
-import java.net.*;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import com.avispl.symphony.api.tal.TalAdapter;
@@ -31,11 +22,7 @@ import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 //import org.apache.logging.log4j.Level;
 //import org.apache.logging.log4j.LogManager;
 //import org.apache.logging.log4j.Logger;
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.json.JSONException;
 
-import org.springframework.http.HttpStatus;
 
 /**
  * Sample TAL adapter implementation.
@@ -167,14 +154,14 @@ public class TalAdapterImpl implements TalAdapter {
             }
 
             // 1. make call to ConnectWise and get live ticket data
-            ConnectWiseTicket refreshedCWTicket = ticketService.getNewestTicket(CWTicket);
+            ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(CWTicket);
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
                 // Update it with the newest information
-                ticketService.updateTicket(CWTicket);
+                ticketService.updateTicket(CWTicket, refreshedCWTicket);
                 // Map ConnectWise ticket back to Symphony
-                TicketMapper.mapThirdPartyToSymphony(talTicket, refreshedCWTicket, config);
+                TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             } else {
                 // Otherwise, create new ticket
                 ticketService.createTicket(CWTicket);
