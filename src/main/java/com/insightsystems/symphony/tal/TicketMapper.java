@@ -5,9 +5,7 @@
 package com.insightsystems.symphony.tal;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
-import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.dto.Attachment;
 import com.avispl.symphony.api.tal.dto.Comment;
 import com.avispl.symphony.api.tal.dto.TalTicket;
@@ -36,7 +34,7 @@ public class TicketMapper {
     {
         // Create new CWTicket
         ConnectWiseTicket CWTicket = new ConnectWiseTicket(
-                config, ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
+                ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
                 ticket.getThirdPartyLink(), ticket.getExtraParams()
         );
 
