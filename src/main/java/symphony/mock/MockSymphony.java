@@ -141,8 +141,15 @@ public class MockSymphony{
         Comment postComment = new Comment("00001", null, null,
                 "TAL NEW POST Test", lastModified);
 
-        comments.add(postComment);
+        Comment badComment = new Comment("00002", null, "test@insightsystems.com.au",
+                "TAL BAD comment", lastModified);
 
+        Comment goodComment = new Comment("00003", null, "lucap@insightsystems.com.au",
+                "TAL GOOD comment", lastModified);
+
+        comments.add(postComment);
+        comments.add(badComment);
+        comments.add(goodComment);
 
         // Creating new ticket
         return new TalTicket(symphonyId, symphonyLink, thirdPartyId,
