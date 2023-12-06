@@ -6,10 +6,7 @@ package com.insightsystems.symphony.tal;
 
 import java.util.*;
 
-import com.avispl.symphony.api.tal.dto.Attachment;
-import com.avispl.symphony.api.tal.dto.Comment;
-import com.avispl.symphony.api.tal.dto.TalTicket;
-import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
+import com.avispl.symphony.api.tal.dto.*;
 
 /**
  * Performs mapping of TAL ticket into third-party one and vice-versa
@@ -180,6 +177,12 @@ public class TicketMapper {
         if (userId == null)
             return null;
 
+        UserIdMapping userIdMapping = config.getUserMappingForThirdParty().get(userId);
+
+        if (userIdMapping == null) {
+            return null;
+        }
+
         String thirdPartyUserId = config.getUserMappingForThirdParty().get(userId).getThirdPartyId();
 
         if (thirdPartyUserId == null)
@@ -243,7 +246,8 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        ticket.setRequester(remapUser(CWTicket.getRequester(), config));
+        if (CWTicket.getRequester() != null)
+            ticket.setRequester(remapUser(CWTicket.getRequester(), config));
     }
 
     /**
@@ -253,7 +257,8 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        ticket.setAssignedTo(remapUser(CWTicket.getAssignee(), config));
+        if (CWTicket.getAssignee() != null)
+            ticket.setAssignedTo(remapUser(CWTicket.getAssignee(), config));
     }
 
     /**
