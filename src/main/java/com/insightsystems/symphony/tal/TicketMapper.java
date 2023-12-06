@@ -5,6 +5,7 @@
 package com.insightsystems.symphony.tal;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import com.avispl.symphony.api.tal.dto.*;
 
@@ -270,11 +271,17 @@ public class TicketMapper {
     private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         Set<Comment> symphonyComments = new HashSet<>();
 
+        Map<String, String> mapIdToCreator = ticket.getComments().stream()
+                .collect(Collectors.toMap(
+                        a -> Objects.requireNonNullElse(a.getSymphonyId(), "null"),
+                        a -> Objects.requireNonNullElse(a.getCreator(), "null")));
+
         Optional.ofNullable(CWTicket.getComments())
                 .orElse(Collections.emptySet())
                 .stream()
                 .forEach(c -> symphonyComments.add(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
-                        remapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+                        c.getCreator() != null ? remapUser(c.getCreator(), config) : mapIdToCreator.get(c.getSymphonyId()),
+                        c.getText(), c.getLastModified())));
 
         ticket.setComments(symphonyComments);
     }
