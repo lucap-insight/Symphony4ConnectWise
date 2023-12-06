@@ -94,7 +94,7 @@ public class TicketServiceImpl {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") &&
-                CWTicket.getExtraParams().containsKey("synced") &&
+                CWTicket.getExtraParams().containsKey("synced") && // If ticket is not new (has been synced before)
                 Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) {
             CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
         }
@@ -111,7 +111,7 @@ public class TicketServiceImpl {
         CWClient.post(CWTicket);
 
         if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
-            // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+            // Make sure ticket know it has been synced
             CWTicket.getExtraParams().replace("synced", "true");
         }
 
