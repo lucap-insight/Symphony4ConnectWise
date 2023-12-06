@@ -93,13 +93,10 @@ public class TicketServiceImpl {
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
-                Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) { // If it's true
-            // Check if ticket is new or if connection just failed
-            if (CWTicket.getExtraParams().containsKey("synced") &&
-                Objects.equals(CWTicket.getExtraParams().get("synced"), "true"))
-                CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
-            else
-                CWTicket.setSummary("New - " + CWTicket.getSummary());
+                Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") &&
+                CWTicket.getExtraParams().containsKey("synced") &&
+                Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) {
+            CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
         }
 
         // Adding initial priority comment
