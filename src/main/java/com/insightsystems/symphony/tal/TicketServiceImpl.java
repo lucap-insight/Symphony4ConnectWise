@@ -94,7 +94,7 @@ public class TicketServiceImpl {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) { // If it's true
-            CWTicket.setSummary("ERROR: previous ticket not found - " + CWTicket.getSummary());
+            CWTicket.setSummary("New - " + CWTicket.getSummary());
         }
 
         // Adding initial priority comment
