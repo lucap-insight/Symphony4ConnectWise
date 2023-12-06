@@ -94,7 +94,12 @@ public class TicketServiceImpl {
         // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) { // If it's true
-            CWTicket.setSummary("New - " + CWTicket.getSummary());
+            // Check if ticket is new or if connection just failed
+            if (CWTicket.getExtraParams().containsKey("synced") &&
+                Objects.equals(CWTicket.getExtraParams().get("synced"), "true"))
+                CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
+            else
+                CWTicket.setSummary("New - " + CWTicket.getSummary());
         }
 
         // Adding initial priority comment
@@ -108,12 +113,16 @@ public class TicketServiceImpl {
         logger.info("createTicket: Attempting to POST ticket on ConnectWise");
         CWClient.post(CWTicket);
 
-        // CWClient.post(JSON);
+        if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
+            // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+            CWTicket.getExtraParams().replace("synced", "true");
+        }
+
     }
 
     /**
      * Updates CW with the information in CWTicket
-     * @param CWTicket Ticket with the latest information from Symphony. Gets updates as necessary to sync information
+     * @param CWTicket Ticket with the latest information from Symphony
      * @param refreshedTicket Ticket to be updated
      */
     public void updateTicket(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
@@ -365,6 +374,7 @@ public class TicketServiceImpl {
         }
         return url + APIPath + "/" + id;
     }
+
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 }
