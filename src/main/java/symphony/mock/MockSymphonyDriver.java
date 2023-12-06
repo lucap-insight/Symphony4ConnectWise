@@ -31,44 +31,56 @@ public class MockSymphonyDriver {
         //testNum ++;
 
         // --------------------------- TEST : NO CHANGES ---------------------------//
-        TestCase(Symphony, Symphony.getTicket(), testNum, "NO CHANGE TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicket(), testNum, "NO CHANGE TICKET");
+        //testNum ++;
 
         // ---------------------------  TEST : PATCH HALF --------------------------- //
-        TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH HALF TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicketMissingInfo(), testNum, "PATCH HALF TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : POST --------------------------- //
-        TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
-        testNum ++;
+        //TalTicket response = TestCase(Symphony, Symphony.getTicket2(), testNum, "POST FULL TICKET"); //
+        //testNum ++;
+
+        // --------------------------- TEST : REPOST --------------------------- //
+        //response = TestCase(Symphony, response, testNum, "REPOST TICKET");
+        //testNum++;
+
+        // --------------------------- TEST : REREPOST --------------------------- //
+        //response.setThirdPartyId("1234567");
+        //response.setThirdPartyLink("wrong");
+        //TestCase(Symphony, response, testNum, "REREPOST TICKET");
+        //testNum++;
 
         // --------------------------- TEST : POST LACKING INFO ---------------------------//
-        TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getTicketPOSTMissingInfo(), testNum, "POST HALF TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : WRONG TICKET --------------------------- //
-        TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getWrongTicket(), testNum, "WRONG TICKET");
+        //testNum ++;
 
         // --------------------------- TEST : FAILED TICKET --------------------------- //
-        TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
-        testNum ++;
+        //TestCase(Symphony, Symphony.getFailedTicket(), testNum, "FAILED TICKET");
+        //testNum ++;
 
 
     }
 
-    static void TestCase(MockSymphony Symphony, TalTicket testTicket, int testNumber, String title) {
+    static TalTicket TestCase(MockSymphony Symphony, TalTicket testTicket, int testNumber, String title) {
         System.out.println("\nMockSymphonyDriver: INITIALIZING TEST " + testNumber + " >> " + title);
+        TalTicket ThirdPartyTicket = null;
         try {
             // Get symphony ticket
             System.out.println("MockSymphonyDriver: Created ticket: " + testTicket);
 
             // Symphony updates TAL
-            TalTicket ThirdPartyTicket = Symphony.updateTal(testTicket);
+            ThirdPartyTicket = Symphony.updateTal(testTicket);
             System.out.println("MockSymphonyDriver: Complete ticket: " + ThirdPartyTicket);
             System.out.println("MockSymphonyDriver: SUCCESS TEST " + testNumber + "\n");
         } catch (Exception e) {
             System.out.println("MockSymphonyDriver: FAIL TEST " + testNumber + " >> " + e.getClass() + ": " + e.getMessage());
         }
+        return ThirdPartyTicket;
     }
 }

@@ -250,7 +250,7 @@ public class MockSymphony{
         //comments.add(postComment2);
         comments.add(initialDescription);
 
-        extraParams.put("connectionFailed", "false");
+        extraParams.put("synced", "true");
 
         // Creating new ticket
         TalTicket newTicket = new TalTicket(symphonyId, symphonyLink, thirdPartyId,
