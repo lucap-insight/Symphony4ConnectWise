@@ -139,7 +139,7 @@ public class ConnectWiseTicket {
      * Constructor from JSONObject
      * @param jsonObject ConnectWise JSON ticket
      */
-    public ConnectWiseTicket(JSONObject jsonObject) {
+    public ConnectWiseTicket(JSONObject jsonObject) { // TODO: Null check the json Object!
         // id
         try {
             setId(jsonObject.getInt("id") + "");

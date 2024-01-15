@@ -68,13 +68,13 @@ public class ConnectWiseClient {
      */
     private JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
         // Optional: Formalize input error checking on ConnectWiseAPICall
-
+        // TODO: config can be null!!! as well as getTicketSourceConfig
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
         String authorization = config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD);
 
         if (clientID == null || authorization == null) {
             logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
-            throw new NullPointerException("Error retrieving client ID and/or authorization. Null value encountered");
+            throw new NullPointerException("Error retrieving client ID and/or authorization. Null value encountered"); // TODO: Change to Symphony error
         }
 
         if (url == null) {
@@ -117,7 +117,7 @@ public class ConnectWiseClient {
             logger.error("ConnectWiseAPICall: HTTP request generated error: " + e.getMessage());
             if (response != null) {
                 throw new TalAdapterSyncException(e + " - HTTP request error",
-                        HttpStatus.valueOf(response.statusCode()));
+                        HttpStatus.valueOf(response.statusCode())); // TODO: Use error provided in email
             } else // Not recoverable. Without a response we can't be sure sending another request will fix it
                 throw new TalAdapterSyncException(e + " - HTTP request error");
         }
@@ -134,7 +134,7 @@ public class ConnectWiseClient {
 
             // Add HTTP status code response to error. It makes the error possibly recoverable
             throw new TalAdapterSyncException(method + " Request error",
-                    response != null ? HttpStatus.valueOf(response.statusCode()) : null);
+                    response != null ? HttpStatus.valueOf(response.statusCode()) : null); // TODO: Use error provided in email
         }
 
         JSONObject jsonObject;
@@ -223,7 +223,7 @@ public class ConnectWiseClient {
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
             logger.error("post: URL or API_PATH not setup on Config");
-            throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config");
+            throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config"); // TODO: Throw TalAdapterSyncException instead
         }
 
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
@@ -283,7 +283,7 @@ public class ConnectWiseClient {
     public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
-        Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator();
+        Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator(); // TODO: FIX, CWTicket and/or getComments() could be null, which will throw a NPE
         ConnectWiseComment SymphonyComment;
         while ( itr.hasNext() ) {
             SymphonyComment = itr.next();
@@ -369,7 +369,7 @@ public class ConnectWiseClient {
      */
     public void postDescription(ConnectWiseTicket CWTicket) {
         String description = "New Symphony ticket: No description found";
-        if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
+        if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText(); // TODO: CWTicket and/or getDescription could be null. Make sure they aren't
         String requestBody = "{\n" +
                 "    \"text\" : \"" + description + "\",\n" +
                 "    \"detailDescriptionFlag\": true,\n" + // It's the description

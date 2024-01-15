@@ -25,7 +25,7 @@ public class TicketServiceImpl {
 
     //* ----------------------------- METHODS ----------------------------- *//
 
-    public TicketServiceImpl() {}
+    public TicketServiceImpl() {} // TODO: Delete
 
     public TicketServiceImpl(ConnectWiseClient CWClient) {
         this.CWClient = CWClient;
@@ -54,13 +54,13 @@ public class TicketServiceImpl {
             // Validation to make sure neither ID, URL, nor API Path is null
             String url = validateUrl(CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL),
                     CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH),
-                    CWTicket.getId());
+                    CWTicket.getId()); // TODO: Make sure that the config is not null. Use code provided in the email
 
             try{
                 refreshedCWTicket = CWClient.get(url);
-                CWTicket.setUrl(url);
+                CWTicket.setUrl(url); // TODO: Write back in the email that this is actually right
             } catch (TalAdapterSyncException e) {
-                if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
+                if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) // TODO: null check getExtraParams()
                     throw e;
             }
         }
@@ -91,7 +91,7 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException
      */
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
-        // CHANGE SUMMARY IF TICKET HAS FAILED
+        // CHANGE SUMMARY IF TICKET HAS FAILED TODO: Null check .getExtraParams()
         if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") &&
                 CWTicket.getExtraParams().containsKey("synced") && // If ticket is not new (has been synced before)
@@ -103,7 +103,7 @@ public class TicketServiceImpl {
         ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
                 String.format("Initial ticket priority: %s",
                         CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority())),
-                null);
+                null); // TODO: Null check .getPriorityMappingForSymphony()
         CWTicket.addComment(initialPriorityComment);
 
         // Create new ticket on ConnectWise
