@@ -67,14 +67,17 @@ public class ConnectWiseClient {
      * @throws TalAdapterSyncException if request fails
      */
     private JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
+        // Check for nulls
+        if (config == null || config.getTicketSourceConfig() == null) {
+            throw new NullPointerException("ConnectWiseClient config or ticketSourceConfig cannot be null");
+        }
         // Optional: Formalize input error checking on ConnectWiseAPICall
-        // TODO: config can be null!!! as well as getTicketSourceConfig
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
         String authorization = config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD);
 
         if (clientID == null || authorization == null) {
             logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
-            throw new NullPointerException("Error retrieving client ID and/or authorization. Null value encountered"); // TODO: Change to Symphony error
+            throw new TalAdapterSyncException("Error retrieving client ID and/or authorization. Null value encountered"); // TODO: Change to Symphony error
         }
 
         if (url == null) {
@@ -116,10 +119,9 @@ public class ConnectWiseClient {
         } catch (IOException | InterruptedException e) {
             logger.error("ConnectWiseAPICall: HTTP request generated error: " + e.getMessage());
             if (response != null) {
-                throw new TalAdapterSyncException(e + " - HTTP request error",
-                        HttpStatus.valueOf(response.statusCode())); // TODO: Use error provided in email
+                throw new TalAdapterSyncException("HTTP request error", HttpStatus.valueOf(response.statusCode()), e); // TODO: Use error provided in email
             } else // Not recoverable. Without a response we can't be sure sending another request will fix it
-                throw new TalAdapterSyncException(e + " - HTTP request error");
+                throw new TalAdapterSyncException("HTTP request error", e);
         }
 
         if (response != null && (response.statusCode() == 200 || response.statusCode() == 201)) {
@@ -134,7 +136,7 @@ public class ConnectWiseClient {
 
             // Add HTTP status code response to error. It makes the error possibly recoverable
             throw new TalAdapterSyncException(method + " Request error",
-                    response != null ? HttpStatus.valueOf(response.statusCode()) : null); // TODO: Use error provided in email
+                    response != null ? HttpStatus.valueOf(response.statusCode()) : null); // TODO: Mention in email that suggestion does not work
         }
 
         JSONObject jsonObject;
@@ -281,6 +283,10 @@ public class ConnectWiseClient {
      * @param newTicket ticket to be updated
      */
     public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
+        // null check
+        if (CWTicket == null || newTicket == null || CWTicket.getComments() == null)
+            throw new NullPointerException("CWTicket, newTicket and comments cannot be null");
+
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
         Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator(); // TODO: FIX, CWTicket and/or getComments() could be null, which will throw a NPE
@@ -368,8 +374,11 @@ public class ConnectWiseClient {
      * @param CWTicket Ticket with description to be added to CW
      */
     public void postDescription(ConnectWiseTicket CWTicket) {
+        if (CWTicket == null)
+            throw new NullPointerException("CWTicket cannot be null");
+
         String description = "New Symphony ticket: No description found";
-        if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText(); // TODO: CWTicket and/or getDescription could be null. Make sure they aren't
+        if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
         String requestBody = "{\n" +
                 "    \"text\" : \"" + description + "\",\n" +
                 "    \"detailDescriptionFlag\": true,\n" + // It's the description
