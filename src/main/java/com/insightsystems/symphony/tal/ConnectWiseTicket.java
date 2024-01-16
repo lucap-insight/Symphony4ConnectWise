@@ -140,6 +140,9 @@ public class ConnectWiseTicket {
      * @param jsonObject ConnectWise JSON ticket
      */
     public ConnectWiseTicket(JSONObject jsonObject) { // TODO: Null check the json Object!
+        if (jsonObject == null)
+            throw new NullPointerException("ConnectWiseTicket cannot be instantiated with null jsonObject");
+
         // id
         try {
             setId(jsonObject.getInt("id") + "");
