@@ -1,6 +1,7 @@
 package com.insightsystems.symphony.tal;
 
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
+import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
@@ -24,8 +25,6 @@ public class TicketServiceImpl {
 
 
     //* ----------------------------- METHODS ----------------------------- *//
-
-    public TicketServiceImpl() {} // TODO: Delete
 
     public TicketServiceImpl(ConnectWiseClient CWClient) {
         this.CWClient = CWClient;
@@ -52,15 +51,25 @@ public class TicketServiceImpl {
         // If URL did not work
         if (CWTicket.getId() != null && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
-            String url = validateUrl(CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL),
-                    CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH),
+            String url = validateUrl(
+                    Optional.of(CWClient)
+                            .map(ConnectWiseClient::getConfig)
+                            .map(TicketSystemConfig::getTicketSourceConfig)
+                            .map(configMap -> configMap.get(TicketSourceConfigProperty.URL))
+                            .orElseThrow(() -> new IllegalArgumentException("Config or URL cannot be null")),
+                    Optional.of(CWClient)
+                            .map(ConnectWiseClient::getConfig)
+                            .map(TicketSystemConfig::getTicketSourceConfig)
+                            .map(configMap -> configMap.get(TicketSourceConfigProperty.API_PATH))
+                            .orElseThrow(() -> new IllegalArgumentException("Config or API_PATH cannot be null")),
                     CWTicket.getId()); // TODO: Make sure that the config is not null. Use code provided in the email
 
             try{
                 refreshedCWTicket = CWClient.get(url);
                 CWTicket.setUrl(url); // TODO: Write back in the email that this is actually right
             } catch (TalAdapterSyncException e) {
-                if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) // TODO: null check getExtraParams()
+                if (CWTicket.getExtraParams() != null &&
+                        Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) // TODO: null check getExtraParams()
                     throw e;
             }
         }
@@ -92,19 +101,22 @@ public class TicketServiceImpl {
      */
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // CHANGE SUMMARY IF TICKET HAS FAILED TODO: Null check .getExtraParams()
-        if (CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
+        if (CWTicket.getExtraParams() != null &&
+                CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") &&
                 CWTicket.getExtraParams().containsKey("synced") && // If ticket is not new (has been synced before)
                 Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) {
             CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
         }
 
+
         // Adding initial priority comment
-        ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
-                String.format("Initial ticket priority: %s",
-                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority())),
-                null); // TODO: Null check .getPriorityMappingForSymphony()
-        CWTicket.addComment(initialPriorityComment);
+        if (CWClient.getConfig() != null && CWClient.getConfig().getPriorityMappingForSymphony() != null) { // null check
+            ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
+                    String.format("Initial ticket priority: %s",
+                            CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority())), null);
+            CWTicket.addComment(initialPriorityComment);
+        }
 
         // Create new ticket on ConnectWise
         logger.info("createTicket: Attempting to POST ticket on ConnectWise");
