@@ -55,7 +55,15 @@ public class TalAdapterImpl implements TalAdapter {
      */
     private TicketSystemConfig config;
 
-    // TODO: Create CWClient and TicketService as private class-level variables
+    /**
+     * Instance of ConnectWiseClient that handles all communication with ConnectWise
+     */
+    private ConnectWiseClient CWClient;
+
+    /**
+     * Instance of TicketServiceImpl that handles the ticket logic
+     */
+    private TicketServiceImpl ticketService;
 
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
@@ -100,7 +108,8 @@ public class TalAdapterImpl implements TalAdapter {
         talConfigService.subscribeForTicketSystemConfigUpdate(accountId,
                 (ticketSystemConfig) -> setConfig(ticketSystemConfig));
 
-        // TODO: Instantiate private class-level variables of CWClient and TicketService
+        ConnectWiseClient CWClient = new ConnectWiseClient(config);
+        TicketServiceImpl ticketService = new TicketServiceImpl(CWClient);
     }
 
     /**
@@ -110,7 +119,7 @@ public class TalAdapterImpl implements TalAdapter {
     public void destroy() {
         // destroy any persistent resources
         // such as thread pools or persistent connections
-        // TODO: Destroy private class level variables of CWClient and ticketService
+        // TODO: Destroy private class level variables of CWClient and ticketService?
     }
 
     /**
@@ -146,15 +155,13 @@ public class TalAdapterImpl implements TalAdapter {
 
             // Initialize components
             ConnectWiseTicket CWTicket = null;
-            ConnectWiseClient CWClient = new ConnectWiseClient(config);
-            TicketServiceImpl ticketService = new TicketServiceImpl(CWClient);
 
             // map status, priorities, users to comply with 3rd party ticketing system
             try {
                 CWTicket = TicketMapper.mapSymphonyToThirdParty(talTicket, config);
-            } catch (Exception e) { // TODO: Instead of throwing e, throw a TalAdapterSyncException(message, e); or something like that
+            } catch (Exception e) {
                 logger.error("syncTalTicket: error mapping Ticket info to CW equivalent");
-                throw e;
+                throw new TalAdapterSyncException(e.getMessage(), e);
             }
 
             // 1. make call to ConnectWise and get live ticket data
