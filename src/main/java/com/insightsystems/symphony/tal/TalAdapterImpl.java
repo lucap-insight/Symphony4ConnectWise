@@ -108,8 +108,8 @@ public class TalAdapterImpl implements TalAdapter {
         talConfigService.subscribeForTicketSystemConfigUpdate(accountId,
                 (ticketSystemConfig) -> setConfig(ticketSystemConfig));
 
-        ConnectWiseClient CWClient = new ConnectWiseClient(config);
-        TicketServiceImpl ticketService = new TicketServiceImpl(CWClient);
+        CWClient = new ConnectWiseClient(config);
+        ticketService = new TicketServiceImpl(CWClient);
     }
 
     /**
