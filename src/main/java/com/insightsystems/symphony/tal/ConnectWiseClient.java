@@ -1,8 +1,10 @@
 package com.insightsystems.symphony.tal;
 
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -77,12 +79,12 @@ public class ConnectWiseClient {
 
         if (clientID == null || authorization == null) {
             logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
-            throw new TalAdapterSyncException("Error retrieving client ID and/or authorization. Null value encountered"); // TODO: Change to Symphony error
+            throw new TalAdapterSyncException("Error retrieving client ID and/or authorization. Null value encountered");
         }
 
         if (url == null) {
             logger.error("ConnectWiseAPICall: URL cannot be null");
-            throw new TalAdapterSyncException("URL for API call cannot be null");
+            throw new InvalidArgumentException("URL for API call cannot be null");
         }
 
         HttpClient client = HttpClient.newHttpClient();
@@ -119,7 +121,7 @@ public class ConnectWiseClient {
         } catch (IOException | InterruptedException e) {
             logger.error("ConnectWiseAPICall: HTTP request generated error: " + e.getMessage());
             if (response != null) {
-                throw new TalAdapterSyncException("HTTP request error", HttpStatus.valueOf(response.statusCode()), e); // TODO: Use error provided in email
+                throw new TalAdapterSyncException("HTTP request error", HttpStatus.valueOf(response.statusCode()), e);
             } else // Not recoverable. Without a response we can't be sure sending another request will fix it
                 throw new TalAdapterSyncException("HTTP request error", e);
         }
@@ -136,7 +138,7 @@ public class ConnectWiseClient {
 
             // Add HTTP status code response to error. It makes the error possibly recoverable
             throw new TalAdapterSyncException(method + " Request error",
-                    response != null ? HttpStatus.valueOf(response.statusCode()) : null); // TODO: Mention in email that suggestion does not work
+                    response != null ? HttpStatus.valueOf(response.statusCode()) : null);
         }
 
         JSONObject jsonObject;
@@ -225,7 +227,7 @@ public class ConnectWiseClient {
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
             logger.error("post: URL or API_PATH not setup on Config");
-            throw new NullPointerException("Cannot create a new ticket: URL or API_PATH not setup on config"); // TODO: Throw TalAdapterSyncException instead
+            throw new TalAdapterSyncException("Cannot create a new ticket: URL or API_PATH not setup on config");
         }
 
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
@@ -284,12 +286,16 @@ public class ConnectWiseClient {
      */
     public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
         // null check
-        if (CWTicket == null || newTicket == null || CWTicket.getComments() == null)
-            throw new NullPointerException("CWTicket, newTicket and comments cannot be null");
+        if (CWTicket == null || newTicket == null)
+            throw new InvalidArgumentException("CWTicket, newTicket and comments cannot be null");
+
+        // CWTicket must have comment set
+        if (CWTicket.getComments() == null)
+            CWTicket.setComments(new HashSet<>());
 
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
-        Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator(); // TODO: FIX, CWTicket and/or getComments() could be null, which will throw a NPE
+        Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator();
         ConnectWiseComment SymphonyComment;
         while ( itr.hasNext() ) {
             SymphonyComment = itr.next();
@@ -375,7 +381,7 @@ public class ConnectWiseClient {
      */
     public void postDescription(ConnectWiseTicket CWTicket) {
         if (CWTicket == null)
-            throw new NullPointerException("CWTicket cannot be null");
+            throw new InvalidArgumentException("CWTicket cannot be null");
 
         String description = "New Symphony ticket: No description found";
         if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();

@@ -1,5 +1,6 @@
 package com.insightsystems.symphony.tal;
 
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
@@ -37,6 +38,11 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException if connection fails and has failed before for the same ticket
      */
     public ConnectWiseTicket getCWTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // Make sure ticket has extra params map
+        if (CWTicket.getExtraParams() == null) {
+            CWTicket.setExtraParams(new HashMap<>());
+        }
+
         ConnectWiseTicket refreshedCWTicket = null;
         // Attempt URL
         if (CWTicket.getUrl() != null) {
@@ -52,24 +58,24 @@ public class TicketServiceImpl {
         if (CWTicket.getId() != null && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
             String url = validateUrl(
-                    Optional.of(CWClient)
+                    Optional.of(CWClient) // CWClient's config URL
                             .map(ConnectWiseClient::getConfig)
                             .map(TicketSystemConfig::getTicketSourceConfig)
                             .map(configMap -> configMap.get(TicketSourceConfigProperty.URL))
-                            .orElseThrow(() -> new IllegalArgumentException("Config or URL cannot be null")),
-                    Optional.of(CWClient)
+                            .orElseThrow(() -> new InvalidArgumentException("Config or URL cannot be null")),
+                    Optional.of(CWClient) // CWClient's config API_PATH
                             .map(ConnectWiseClient::getConfig)
                             .map(TicketSystemConfig::getTicketSourceConfig)
                             .map(configMap -> configMap.get(TicketSourceConfigProperty.API_PATH))
-                            .orElseThrow(() -> new IllegalArgumentException("Config or API_PATH cannot be null")),
-                    CWTicket.getId()); // TODO: Make sure that the config is not null. Use code provided in the email
+                            .orElseThrow(() -> new InvalidArgumentException("Config or API_PATH cannot be null")),
+                    CWTicket.getId());
 
             try{
                 refreshedCWTicket = CWClient.get(url);
-                CWTicket.setUrl(url); // TODO: Write back in the email that this is actually right
+                CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
                 if (CWTicket.getExtraParams() != null &&
-                        Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) // TODO: null check getExtraParams()
+                        Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
                     throw e;
             }
         }
@@ -100,7 +106,7 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException
      */
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
-        // CHANGE SUMMARY IF TICKET HAS FAILED TODO: Null check .getExtraParams()
+        // CHANGE SUMMARY IF TICKET HAS FAILED
         if (CWTicket.getExtraParams() != null &&
                 CWTicket.getExtraParams().containsKey("connectionFailed") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") &&

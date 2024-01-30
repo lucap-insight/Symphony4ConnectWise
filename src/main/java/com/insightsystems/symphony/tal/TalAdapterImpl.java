@@ -119,7 +119,6 @@ public class TalAdapterImpl implements TalAdapter {
     public void destroy() {
         // destroy any persistent resources
         // such as thread pools or persistent connections
-        // TODO: Destroy private class level variables of CWClient and ticketService?
     }
 
     /**

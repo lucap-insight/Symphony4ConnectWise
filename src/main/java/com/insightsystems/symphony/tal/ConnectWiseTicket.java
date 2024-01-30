@@ -1,5 +1,6 @@
 package com.insightsystems.symphony.tal;
 
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.*;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -139,9 +140,9 @@ public class ConnectWiseTicket {
      * Constructor from JSONObject
      * @param jsonObject ConnectWise JSON ticket
      */
-    public ConnectWiseTicket(JSONObject jsonObject) { // TODO: Null check the json Object!
+    public ConnectWiseTicket(JSONObject jsonObject) {
         if (jsonObject == null)
-            throw new NullPointerException("ConnectWiseTicket cannot be instantiated with null jsonObject");
+            throw new InvalidArgumentException("ConnectWiseTicket cannot be instantiated with null jsonObject");
 
         // id
         try {
