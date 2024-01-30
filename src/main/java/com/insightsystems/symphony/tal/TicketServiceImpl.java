@@ -124,6 +124,19 @@ public class TicketServiceImpl {
             CWTicket.addComment(initialPriorityComment);
         }
 
+        // Make sure summary is not null
+        if (CWTicket.getSummary() == null) {
+            // Try using description
+            if (CWTicket.getDescription() != null && CWTicket.getDescription().getText() != null) {
+                logger.info("createTicket: summary is null. Using ticket description as new summary.");
+                CWTicket.setSummary(CWTicket.getDescription().getText());
+            } else {
+                // else use standard description:
+                logger.info("createTicket: summary is null. Using standard summary for new ticket.");
+                CWTicket.setSummary("NEW Symphony ticket");
+            }
+        }
+
         // Create new ticket on ConnectWise
         logger.info("createTicket: Attempting to POST ticket on ConnectWise");
         CWClient.post(CWTicket);
