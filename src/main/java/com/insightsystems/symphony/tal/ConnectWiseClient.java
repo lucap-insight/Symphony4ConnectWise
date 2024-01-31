@@ -51,6 +51,10 @@ public class ConnectWiseClient {
     }
 
     public ConnectWiseClient(TicketSystemConfig config) {
+        if (config == null || config.getTicketSourceConfig() == null) {
+            logger.error("ConnectWiseClient: attempted to create instance with null config or null TicketSourceConfig");
+        }
+
         this.config = config;
 
         RecoverableHttpStatus = new ArrayList<Integer>();
@@ -293,6 +297,9 @@ public class ConnectWiseClient {
         if (CWTicket.getComments() == null)
             CWTicket.setComments(new HashSet<>());
 
+        if (newTicket.getComments() == null)
+            newTicket.setComments(new HashSet<>());
+
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
         Iterator<ConnectWiseComment> itr = CWTicket.getComments().iterator();
@@ -305,6 +312,7 @@ public class ConnectWiseClient {
             for (ConnectWiseComment CWComment : newTicket.getComments()) {
                 // If it exists, and it's not the description: update CW ticket
                 if (SymphonyComment.getThirdPartyId() != null && // if it has a CW ID
+                        newTicket.getDescription() != null &&
                         !Objects.equals( SymphonyComment.getThirdPartyId(), newTicket.getDescription().getThirdPartyId() ) && // It's not the description
                         Objects.equals( CWComment.getThirdPartyId(), SymphonyComment.getThirdPartyId() ) ) { // And CW ID matches
                     commentFound = true;
