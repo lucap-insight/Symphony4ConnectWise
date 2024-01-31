@@ -7,6 +7,7 @@ package com.insightsystems.symphony.tal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.*;
 
 /**
@@ -30,6 +31,10 @@ public class TicketMapper {
      */
     public static ConnectWiseTicket mapSymphonyToThirdParty(TalTicket ticket, TicketSystemConfig config)
     {
+        if (ticket == null || config == null) {
+            throw new InvalidArgumentException("TAL ticket and/or config cannot be null when mapping from Symphony to ConnectWise");
+        }
+
         // Create new CWTicket
         ConnectWiseTicket CWTicket = new ConnectWiseTicket(
                 ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
@@ -58,6 +63,9 @@ public class TicketMapper {
      */
     public static TalTicket mapThirdPartyToSymphony(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config)
     {
+        if (ticket == null || CWTicket == null || config == null)
+            throw new InvalidArgumentException("TAL ticket, ConnectWise ticket, and/or config cannot be null when mapping from ConnectWise to Symphony");
+
         ticket.setSubject(CWTicket.getSummary());
         if (CWTicket.getDescription() != null) ticket.setDescription(CWTicket.getDescription().getText());
         ticket.setThirdPartyId(CWTicket.getId());
@@ -96,6 +104,10 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        if (config.getStatusMappingForThirdParty() == null)
+            throw new InvalidArgumentException("Status mapping for third party cannot be null.");
+
+        // It's ok for the status here to be null, it will just be set to ConnectWise's default
         String thirdPartyStatus = config.getStatusMappingForThirdParty().get(ticket.getStatus());
 
         if (thirdPartyStatus == null)
@@ -111,6 +123,9 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        if (config.getPriorityMappingForThirdParty() == null)
+            throw new InvalidArgumentException("Priority mapping for third party cannot be null");
+
         String thirdPartyPriority = config.getPriorityMappingForThirdParty().get(ticket.getPriority());
 
         if (thirdPartyPriority == null)
@@ -178,13 +193,16 @@ public class TicketMapper {
         if (userId == null)
             return null;
 
+        if (config.getUserMappingForThirdParty() == null)
+            throw new InvalidArgumentException("User mapping for third party cannot be null");
+
         UserIdMapping userIdMapping = config.getUserMappingForThirdParty().get(userId);
 
         if (userIdMapping == null) {
             return null;
         }
 
-        String thirdPartyUserId = config.getUserMappingForThirdParty().get(userId).getThirdPartyId();
+        String thirdPartyUserId = userIdMapping.getThirdPartyId();
 
         if (thirdPartyUserId == null)
             return userId;
@@ -202,6 +220,9 @@ public class TicketMapper {
         if (userId == null)
             return null;
 
+        if (config.getUserMappingForSymphony() == null)
+            throw new InvalidArgumentException("User mapping for Symphony cannot be null");
+
         String thirdPartyUserId = config.getUserMappingForSymphony().get(userId);
 
         if (thirdPartyUserId == null)
@@ -217,6 +238,9 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        if (config.getStatusMappingForSymphony() == null)
+            throw new InvalidArgumentException("Status mapping for Symphony cannot be null");
+
         String symphonyStatus = config.getStatusMappingForSymphony().get(CWTicket.getStatus());
 
         if (symphonyStatus == null)
@@ -232,6 +256,9 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
+        if (config.getPriorityMappingForSymphony() == null)
+            throw new InvalidArgumentException("Priority mapping for Symphony cannot be null");
+
         String symphonyPriority = config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
 
         if (symphonyPriority == null)
@@ -271,6 +298,9 @@ public class TicketMapper {
     private static void remapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         Set<Comment> symphonyComments = new HashSet<>();
 
+        if (CWTicket.getComments() == null) // if there are no comments, there is nothing to map
+            return;
+
         Map<String, String> mapIdToCreator = ticket.getComments().stream()
                 .collect(Collectors.toMap(
                         a -> Objects.requireNonNullElse(a.getSymphonyId(), "null"),
@@ -280,6 +310,8 @@ public class TicketMapper {
                 .orElse(Collections.emptySet())
                 .stream()
                 .forEach(c -> symphonyComments.add(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
+                        // If CW comment has a creator map it back to symphony, otherwise use the creator of the Symphony
+                        //comment that has the same Symphony ID as this CW comment
                         c.getCreator() != null ? remapUser(c.getCreator(), config) : mapIdToCreator.get(c.getSymphonyId()),
                         c.getText(), c.getLastModified())));
 
