@@ -75,7 +75,8 @@ public class ConnectWiseClient {
     private JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
         // Check for nulls
         if (config == null || config.getTicketSourceConfig() == null) {
-            throw new NullPointerException("ConnectWiseClient config or ticketSourceConfig cannot be null");
+            // Decided to use a Sync error because the config is not an argument (so not using an InvalidArgumentException)
+            throw new TalAdapterSyncException("ConnectWiseClient config or ticketSourceConfig cannot be null");
         }
         // Optional: Formalize input error checking on ConnectWiseAPICall
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
