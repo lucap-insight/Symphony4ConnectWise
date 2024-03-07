@@ -113,6 +113,9 @@ public class ConnectWiseTicket {
 
     //* ----------------------------- METHODS ----------------------------- *//
 
+    /**
+     * ConnectWiseTicket emptry constructor
+     */
     public ConnectWiseTicket() {
         setAttachments(new HashSet<>());
         setComments(new HashSet<>());
@@ -120,6 +123,14 @@ public class ConnectWiseTicket {
         RecoverableHttpStatus = new ArrayList<>();
     }
 
+    /**
+     * ConnectWiseTicket constructor
+     * @param symphonyId ticket's ID in Symphony
+     * @param symphonyLink ticket's link in Symphony
+     * @param id ticket's ConnectWise ID
+     * @param url ticket's ConnectWise URL
+     * @param extraParams
+     */
     public ConnectWiseTicket(String symphonyId, String symphonyLink, String id, String url, Map<String, String> extraParams) {
         // logger.info("Initializing ConnectWise ticket")
         setSymphonyId(symphonyId);
@@ -137,7 +148,8 @@ public class ConnectWiseTicket {
     }
 
     /**
-     * Constructor from JSONObject
+     * ConnectWiseTicket constructor using a ConnectWise response
+     *
      * @param jsonObject ConnectWise JSON ticket
      */
     public ConnectWiseTicket(JSONObject jsonObject) {
@@ -273,6 +285,11 @@ public class ConnectWiseTicket {
         this.description = description;
     }
 
+    /**
+     * Add a {@link ConnectWiseComment} description to this ticket using a ConnectWise comment in JSONObject format
+     *
+     * @param newDescription a JSON of a ConnectWise comment
+     */
     public void AddJSONDescription(JSONObject newDescription) {
         ConnectWiseComment newCWDescription = null;
         try {
@@ -335,6 +352,11 @@ public class ConnectWiseTicket {
         return Comments;
     }
 
+    /**
+     * Adds comments in a JSON array of ConnectWise comments to this ticket
+     *
+     * @param jsonArray array in the format of a ConnectWise API GET call
+     */
     public void setComments(JSONArray jsonArray) {
         DateTimeFormatter ConnectWiseDateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'H:m:sX");
 

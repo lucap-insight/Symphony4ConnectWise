@@ -42,6 +42,9 @@ public class ConnectWiseClient {
 
     //* ----------------------------- METHODS ----------------------------- *//
 
+    /**
+     * ConnectWiseClient empty constructor
+     */
     public ConnectWiseClient(){
         RecoverableHttpStatus = new ArrayList<Integer>();
         RecoverableHttpStatus.add(408);
@@ -50,6 +53,11 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(503);
     }
 
+    /**
+     * ConnectWiseClient constructor
+     *
+     * @param config fully configured instance of {@link TicketSystemConfig}
+     */
     public ConnectWiseClient(TicketSystemConfig config) {
         if (config == null || config.getTicketSourceConfig() == null) {
             logger.error("ConnectWiseClient: attempted to create instance with null config or null TicketSourceConfig");
@@ -214,6 +222,7 @@ public class ConnectWiseClient {
 
     /**
      * Updates CWTicket based on requestBody with a PATCH API call
+     *
      * @param url to update
      * @param requestBody PATCH call request body
      */
@@ -286,6 +295,7 @@ public class ConnectWiseClient {
     /**
      * Updates ConnectWise comments based on SymphonyTicket.
      * No comment flow from ConnectWise to Symphony.
+     *
      * @param CWTicket ticket with updated Symphony information
      * @param newTicket ticket to be updated
      */
@@ -386,6 +396,7 @@ public class ConnectWiseClient {
 
     /**
      * Posts description comment in ConnectWise using the ticket's url
+     *
      * @param CWTicket Ticket with description to be added to CW
      */
     public void postDescription(ConnectWiseTicket CWTicket) {

@@ -351,6 +351,12 @@ public class TicketServiceImpl {
         return returnVal;
     }
 
+    /**
+     * Updates ConnectWise's description with Symphony's description using a PATCH request.
+     *
+     * @param CWTicket Symphony ticket with the latest information
+     * @param refreshedTicket Ticket retrieved from CW
+     */
     private void patchDescription(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) {
         // Check if CW Comment exists
         if (refreshedTicket.getDescription() == null) {
