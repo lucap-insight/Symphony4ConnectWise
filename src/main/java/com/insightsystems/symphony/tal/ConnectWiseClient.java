@@ -61,6 +61,7 @@ public class ConnectWiseClient {
     public ConnectWiseClient(TicketSystemConfig config) {
         if (config == null || config.getTicketSourceConfig() == null) {
             logger.error("ConnectWiseClient: attempted to create instance with null config or null TicketSourceConfig");
+            throw new InvalidArgumentException("ConnectWiseClient cannot be instantiated with null config");
         }
 
         this.config = config;
