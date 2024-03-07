@@ -106,9 +106,12 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException
      */
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // Make sure ticket has extra params
+        if (CWTicket.getExtraParams() == null)
+            CWTicket.setExtraParams(new HashMap<>());
+
         // CHANGE SUMMARY IF TICKET HAS FAILED
-        if (CWTicket.getExtraParams() != null &&
-                Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") && // If connectionFailed param exists
+        if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") && // If connectionFailed param exists
                 Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) { // If ticket is not new (has been synced before)
             CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
         }
