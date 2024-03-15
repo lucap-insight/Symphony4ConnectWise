@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
+import java.net.Authenticator;
+import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -39,6 +41,11 @@ public class ConnectWiseClient {
      */
     private List<Integer> RecoverableHttpStatus;
 
+    /**
+     * HTTP Client to send requests
+     */
+    private HttpClient client;
+
 
     //* ----------------------------- METHODS ----------------------------- *//
 
@@ -51,6 +58,8 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(429);
         RecoverableHttpStatus.add(502);
         RecoverableHttpStatus.add(503);
+
+        this.client = HttpClient.newHttpClient();
     }
 
     /**
@@ -71,6 +80,8 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(429);
         RecoverableHttpStatus.add(502);
         RecoverableHttpStatus.add(503);
+
+        this.client = HttpClient.newHttpClient();
     }
 
     /**
@@ -89,7 +100,7 @@ public class ConnectWiseClient {
         }
         // Optional: Formalize input error checking on ConnectWiseAPICall
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
-        String authorization = config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD);
+        String authorization = getBasicAuthenticationHeader();
 
         if (clientID == null || authorization == null) {
             logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
@@ -101,7 +112,7 @@ public class ConnectWiseClient {
             throw new InvalidArgumentException("URL for API call cannot be null");
         }
 
-        HttpClient client = HttpClient.newHttpClient();
+
         HttpRequest request = null;
 
         try {
@@ -109,9 +120,9 @@ public class ConnectWiseClient {
                 request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .method(method, HttpRequest.BodyPublishers.ofString(requestBody))
-                        .header("Content-Type", "application/json")
                         .header("clientID", clientID)
                         .header("Authorization", authorization)
+                        .header("Content-Type", "application/json")
                         .build();
             } else if (Objects.equals(method, "GET")) {
                 request = HttpRequest.newBuilder()
@@ -429,6 +440,19 @@ public class ConnectWiseClient {
         }
     }
 
+    /**
+     * Gets Basic authentication header for ConnectWise API in Base64
+     *
+     * @return Authentication header
+     * @throws TalAdapterSyncException if config is not fully configured
+     */
+    private String getBasicAuthenticationHeader() throws TalAdapterSyncException {
+        if (config == null ||
+                config.getTicketSourceConfig() == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
+            throw new TalAdapterSyncException("");
+        return "Basic " + Base64.getEncoder().encodeToString(config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD).getBytes());
+    }
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 
