@@ -133,13 +133,19 @@ public class TalAdapterImpl implements TalAdapter {
             //System.out.println(talTicket);
 
             // Confirm that credentials have been set up
-            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null ||
-                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null) {
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENTID) == null ||
+                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) == null ||
+                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY) == null ||
+                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) == null) {
                 String errorMessage = "ConnectWise API Credentials missing:";
-                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN) == null)
+                if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENTID) == null)
                     errorMessage += " clientID";
-                if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
-                    errorMessage += " Authorization";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) == null)
+                    errorMessage += " Public key";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY) == null)
+                    errorMessage += " Private key";
+                if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) == null)
+                    errorMessage += " Company ID";
                 logger.error("syncTalTicket: " + errorMessage);
                 throw new TalAdapterSyncException(errorMessage);
             }

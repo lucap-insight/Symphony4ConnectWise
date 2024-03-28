@@ -99,7 +99,7 @@ public class ConnectWiseClient {
             throw new TalAdapterSyncException("ConnectWiseClient config or ticketSourceConfig cannot be null");
         }
         // Optional: Formalize input error checking on ConnectWiseAPICall
-        String clientID = config.getTicketSourceConfig().get(TicketSourceConfigProperty.LOGIN);
+        String clientID = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENTID);
         String authorization = getBasicAuthenticationHeader();
 
         if (clientID == null || authorization == null) {
@@ -449,9 +449,14 @@ public class ConnectWiseClient {
     private String getBasicAuthenticationHeader() throws TalAdapterSyncException {
         if (config == null ||
                 config.getTicketSourceConfig() == null ||
-                config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD) == null)
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY) == null)
             throw new TalAdapterSyncException("");
-        return "Basic " + Base64.getEncoder().encodeToString(config.getTicketSourceConfig().get(TicketSourceConfigProperty.PASSWORD).getBytes());
+        String temp = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) + "+" +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) + ":" +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY);
+        return "Basic " + Base64.getEncoder().encodeToString(temp.getBytes());
     }
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
