@@ -452,7 +452,10 @@ public class ConnectWiseClient {
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY) == null)
-            throw new TalAdapterSyncException("");
+        {
+            logger.error("getBasicAuthenticationHeader: Unable to retrieve Company ID/Public key/Private key from configuration");
+            throw new TalAdapterSyncException("Config properties cannot be null");
+        }
         String temp = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) + "+" +
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) + ":" +
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY);
