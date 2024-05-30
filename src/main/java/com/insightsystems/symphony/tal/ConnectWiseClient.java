@@ -162,7 +162,8 @@ public class ConnectWiseClient {
                     response != null ? response.statusCode() : "not specified");
 
             // Add HTTP status code response to error. It makes the error possibly recoverable
-            throw new TalAdapterSyncException(method + " Request error",
+            throw new TalAdapterSyncException(method + " Request error: " +
+                    (response != null ? response.body() : ""),
                     response != null ? HttpStatus.valueOf(response.statusCode()) : null);
         }
 
@@ -266,8 +267,13 @@ public class ConnectWiseClient {
                 "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
                 "    },\n" +
                 "    \"company\": {\n" +
-                "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
+                "        \"id\": 250\n" + // TODO: this should come from ticketSourceConfig or TalConfigService
                 "    }" +
+                (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYIDENTIFIER) != null ?
+                ",\n" +
+                "    \"company\": {\n" +
+                "        \"identifier\": \""+ config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYIDENTIFIER) +"\"\n" + // this should come from ticketSourceConfig or TalConfigService
+                "    }" : "\n") +
                 (CWTicket.getStatus() != null ?
                 ",\n" +
                 "    \"status\" : {\n" +
