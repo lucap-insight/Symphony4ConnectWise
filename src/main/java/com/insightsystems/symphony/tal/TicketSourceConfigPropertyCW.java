@@ -7,4 +7,5 @@ public interface TicketSourceConfigPropertyCW extends TicketSourceConfigProperty
     String PUBLICKEY = "publicKey";
     String PRIVATEKEY = "privateKey";
     String COMPANYID = "companyId";
+    String COMPANYIDENTIFIER = "companyIdentifier";
 }
