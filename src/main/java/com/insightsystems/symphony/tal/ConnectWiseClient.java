@@ -4,7 +4,6 @@ import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.io.IOException;
-import java.net.Authenticator;
-import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -99,7 +96,7 @@ public class ConnectWiseClient {
             throw new TalAdapterSyncException("ConnectWiseClient config or ticketSourceConfig cannot be null");
         }
         // Optional: Formalize input error checking on ConnectWiseAPICall
-        String clientID = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENTID);
+        String clientID = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID);
         String authorization = getBasicAuthenticationHeader();
 
         if (clientID == null || authorization == null) {
@@ -114,6 +111,17 @@ public class ConnectWiseClient {
 
 
         HttpRequest request = null;
+
+        /* TODO: check alternative method of building HTTP request
+        Check if I can do something like:
+        request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .header("clientID", clientID)
+                .header("Authorization", authorization);
+        Check with the HttpRequest library! This would help build with/without the Accept version header in case
+        it doesn't exist.
+         */
 
         try {
             if (requestBody != null) {
@@ -130,7 +138,7 @@ public class ConnectWiseClient {
                         .header("Content-Type", "application/json")
                         .header("clientID", clientID)
                         .header("Authorization", authorization)
-                        .build();
+                        .build(); // TODO: Add Accept header with specific version (if specified)
             }
         } catch (Exception e) {
             logger.error("ConnectWiseAPICall: Error building HttpRequest: " + e.getMessage());
@@ -206,9 +214,7 @@ public class ConnectWiseClient {
         if (response != null) {
             // Create new ticket and assign values
             refreshedCWTicket = new ConnectWiseTicket(response);
-            refreshedCWTicket.setUrl(config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
-                    config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) + "/" +
-                    refreshedCWTicket.getId());
+            refreshedCWTicket.setUrl(url);
 
             // Attempting to get comments
             logger.info("get: retrieving comments");
@@ -250,6 +256,7 @@ public class ConnectWiseClient {
      * @throws TalAdapterSyncException if posting ticket failed
      */
     public void post(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // TODO: Null check for URL_PATTERN_TO_GET_TICKET, Board, and COMPANY_REC_ID
         // Check if URL and API_PATH are not null
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
@@ -257,23 +264,19 @@ public class ConnectWiseClient {
             throw new TalAdapterSyncException("Cannot create a new ticket: URL or API_PATH not setup on config");
         }
 
+        // TODO: Add URL_PATTERN_TO_GET_TICKET to this URL
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH);
 
-        // FIXME: Get board and company from ticketSourceConfig/TalConfigService
+        // TODO: Get board and company from ticketSourceConfig/TalConfigService
         String requestBody = "{\n" +
                 "    \"summary\" : \"" + CWTicket.getSummary() + "\",\n" +
                 "    \"board\" : {\n" +
                 "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
                 "    },\n" +
                 "    \"company\": {\n" +
-                "        \"id\": 250\n" + // TODO: this should come from ticketSourceConfig or TalConfigService
+                "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
                 "    }" +
-                (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYIDENTIFIER) != null ?
-                ",\n" +
-                "    \"company\": {\n" +
-                "        \"identifier\": \""+ config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYIDENTIFIER) +"\"\n" + // this should come from ticketSourceConfig or TalConfigService
-                "    }" : "\n") +
                 (CWTicket.getStatus() != null ?
                 ",\n" +
                 "    \"status\" : {\n" +
@@ -286,8 +289,8 @@ public class ConnectWiseClient {
                 "    }" : "\n") +
                 (CWTicket.getPriority() != null ?
                 ",\n" +
-                "    \"priority\" : {\n" +
-                "        \"id\": "+ CWTicket.getPriority() +"\n" +
+                "    \"priority\" : {\n" + // TODO: Email about custom mapping?
+                "        \"id\": "+ CWTicket.getPriority() +"\n" + // FIXME: Priority should be mapped by name, not id
                 "    }\n" : "\n") +
                 //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
                 "}";
@@ -299,6 +302,10 @@ public class ConnectWiseClient {
         // Update CWTicket
         CWTicket.setId(newTicket.getId());
         CWTicket.setUrl(newTicket.getUrl());
+
+        // Update new ticket
+        newTicket.setSymphonyId(CWTicket.getSymphonyId());
+        newTicket.setSymphonyLink(CWTicket.getSymphonyLink());
 
         // POST description
         postDescription(CWTicket);
@@ -455,16 +462,16 @@ public class ConnectWiseClient {
     private String getBasicAuthenticationHeader() throws TalAdapterSyncException {
         if (config == null ||
                 config.getTicketSourceConfig() == null ||
-                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) == null ||
-                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) == null ||
-                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY) == null)
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_ID) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLIC_KEY) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATE_KEY) == null)
         {
             logger.error("getBasicAuthenticationHeader: Unable to retrieve Company ID/Public key/Private key from configuration");
             throw new TalAdapterSyncException("Config properties cannot be null");
         }
-        String temp = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANYID) + "+" +
-                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLICKEY) + ":" +
-                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATEKEY);
+        String temp = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_ID) + "+" +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLIC_KEY) + ":" +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PRIVATE_KEY);
         return "Basic " + Base64.getEncoder().encodeToString(temp.getBytes());
     }
 
