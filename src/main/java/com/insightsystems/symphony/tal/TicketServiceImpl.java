@@ -43,21 +43,24 @@ public class TicketServiceImpl {
             CWTicket.setExtraParams(new HashMap<>());
         }
 
+        // Possible error
+        TalAdapterSyncException connectionFailedError = null;
+
         ConnectWiseTicket refreshedCWTicket = null;
         // Attempt URL
         if (CWTicket.getUrl() != null) {
             try {
                 refreshedCWTicket = CWClient.get(CWTicket.getUrl());
+
             } catch (TalAdapterSyncException e) {
-                if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
-                    throw e;
+                connectionFailedError = e;
             }
         }
 
         // If URL did not work
         if (CWTicket.getId() != null && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
-            String url = validateUrl(
+            String url = validateUrl( // TODO: Use URL_PATTERN_TO_GET_TICKET (modify validate URL as well)
                     Optional.of(CWClient) // CWClient's config URL
                             .map(ConnectWiseClient::getConfig)
                             .map(TicketSystemConfig::getTicketSourceConfig)
@@ -72,27 +75,48 @@ public class TicketServiceImpl {
 
             try{
                 refreshedCWTicket = CWClient.get(url);
-                CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
-                if (CWTicket.getExtraParams() != null &&
-                        Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true"))
-                    throw e;
+                connectionFailedError = e;
             }
         }
 
-        if (refreshedCWTicket == null) {
-            // Log error
-            logger.warn("getNewestTicket: Both API attempts unsuccessful, adding connectionFailed extra parameter");
-            // If it's the first time failing add connectionFailed parameter
-            if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
-                // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                CWTicket.getExtraParams().replace("connectionFailed", "true");
+        if (refreshedCWTicket == null) { // If getCWTicket was unable to get ConnectWise's ticket
+            // Warn of error
+            logger.warn("getCWTicket: Both HTTP calls unsuccessful");
+
+            // If it has failed before:
+            if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) {
+                // Throw connectionFailedError
+                if (connectionFailedError != null)
+                    throw connectionFailedError;
+                else
+                    throw new TalAdapterSyncException(
+                            "Unable to reach ConnectWise to sync ticket - connection has failed previously"
+                    );
             }
+            else { //else
+                // Add connectionFailedParameter
+                if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
+                    // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                    CWTicket.getExtraParams().replace("connectionFailed", "true");
+                }
+            }
+
+
+
         } else {
+            // Set refreshedCWTicket's Symphony variables
+            refreshedCWTicket.setSymphonyId(CWTicket.getSymphonyId());
+            refreshedCWTicket.setSymphonyLink(CWTicket.getSymphonyLink());
+
             // Else the connection was successful
             if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
                 // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
                 CWTicket.getExtraParams().replace("connectionFailed", "false");
+            }
+            // Ensure that ticket knows it has been synced properly
+            if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
+                CWTicket.getExtraParams().replace("synced", "true");
             }
         }
 
@@ -143,8 +167,11 @@ public class TicketServiceImpl {
         CWClient.post(CWTicket);
 
         if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
-            // Make sure ticket know it has been synced
+            // Make sure ticket knows it has been synced
             CWTicket.getExtraParams().replace("synced", "true");
+        }
+        if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+            CWTicket.getExtraParams().replace("connectionFailed", "false");
         }
 
     }
@@ -404,7 +431,7 @@ public class TicketServiceImpl {
             throw new TalAdapterSyncException("Unable to form URL with missing parameters:" +
                     (id == null ? " ID" : "") +
                     (url == null ? " URL":"") +
-                    (APIPath == null? " API PATH":""),
+                    (APIPath == null? " API_PATH":""),
                     HttpStatus.BAD_REQUEST);
         }
         return url + APIPath + "/" + id;
