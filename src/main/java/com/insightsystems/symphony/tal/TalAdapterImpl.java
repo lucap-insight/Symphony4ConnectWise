@@ -157,11 +157,14 @@ public class TalAdapterImpl implements TalAdapter {
             if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
                 logger.warn("syncTalTicket: API_PATH not setup on Config");
             }
-            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null ||
-                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null ||
-                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_REC_ID) == null) {
-                // TODO: Separate into proper warnings for each TicketSourceConfigProperty missing
-                // These can be retrieved from the ticket using the ThirdPartyLink (if it exists)
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null) {
+                logger.warn("syncTalTicket: URL Pattern to get Ticket not setup on Config");
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+                logger.warn("syncTalTicket: URL Pattern to get Comments not setup on Config");
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_REC_ID) == null) {
+                logger.warn("syncTalTicket: Company recID not setup on Config");
             }
 
             // Initialize components
