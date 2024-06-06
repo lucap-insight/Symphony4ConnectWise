@@ -62,6 +62,7 @@ public class TicketServiceImpl {
             try {
                 url = createURL(CWTicket);
                 refreshedCWTicket = CWClient.get(url);
+                CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
                 connectionFailedError = e;
             }
@@ -69,7 +70,7 @@ public class TicketServiceImpl {
 
         if (refreshedCWTicket == null) { // If getCWTicket was unable to get ConnectWise's ticket
             // Warn of error
-            logger.warn("getCWTicket: Both HTTP calls unsuccessful");
+            logger.warn("getCWTicket: Failed to retrieve ticket from ConnectWise");
 
             // If it has failed before:
             if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) {
@@ -192,7 +193,7 @@ public class TicketServiceImpl {
                 throw e;
             }
         } else {
-            logger.info("updateTicket: No API call made");
+            logger.info("updateTicket: No updates needed");
         }
 
         patchDescription(CWTicket, refreshedTicket);
@@ -374,7 +375,14 @@ public class TicketServiceImpl {
      * @param CWTicket Symphony ticket with the latest information
      * @param refreshedTicket Ticket retrieved from CW
      */
-    private void patchDescription(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) {
+    private void patchDescription(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
+        // null-check
+        if (CWClient.getConfig()
+                .getTicketSourceConfig()
+                .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+            logger.error("patchDescription: URL Pattern to get comments property configuration cannot be null");
+            throw new InvalidArgumentException("URL Pattern to get comments property configuration cannot be null");
+        }
         // Check if CW Comment exists
         if (refreshedTicket.getDescription() == null) {
             // If CW does not have a description comment, create one
@@ -393,7 +401,12 @@ public class TicketServiceImpl {
                         "    }]";
                 logger.info("updateDescription: Attempting PATCH request");
                 try {
-                    CWClient.patch(CWTicket.getUrl() + "/notes/" + refreshedTicket.getDescription().getThirdPartyId(),
+                    CWClient.patch(CWTicket.getUrl() +
+                                    CWClient.getConfig()
+                                            .getTicketSourceConfig()
+                                            .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS)
+                                    + "/" +
+                                    refreshedTicket.getDescription().getThirdPartyId(),
                             body);
                 } catch (TalAdapterSyncException e) {
                     logger.error("patchDescription: CW API Call error - unable to sync description. Http error code: {}",
