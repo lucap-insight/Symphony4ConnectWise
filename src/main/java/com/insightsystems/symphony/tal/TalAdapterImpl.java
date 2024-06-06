@@ -6,6 +6,7 @@ package com.insightsystems.symphony.tal;
 
 import java.util.*;
 
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
@@ -131,6 +132,8 @@ public class TalAdapterImpl implements TalAdapter {
     public TalTicket syncTalTicket(TalTicket talTicket) throws TalAdapterSyncException {
         try {
             //System.out.println(talTicket);
+            if (talTicket == null)
+                throw new InvalidArgumentException("talTicket cannot be null");
 
             // Confirm that credentials have been set up
             if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID) == null ||
