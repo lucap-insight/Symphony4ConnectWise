@@ -112,16 +112,11 @@ public class ConnectWiseClient {
 
         HttpRequest request = null;
 
-        /* TODO: check alternative method of building HTTP request
-        Check if I can do something like:
-        request = HttpRequest.newBuilder()
-                .uri(URI.create(url))
-                .header("Content-Type", "application/json")
-                .header("clientID", clientID)
-                .header("Authorization", authorization);
-        Check with the HttpRequest library! This would help build with/without the Accept version header in case
-        it doesn't exist.
-         */
+        // Set up Accept header
+        String accept = "application/vnd.connectwise.com+json";
+        if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.API_VERSION) != null) {
+            accept += "; version=" + config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.API_VERSION);
+        }
 
         try {
             if (requestBody != null) {
@@ -131,6 +126,7 @@ public class ConnectWiseClient {
                         .header("clientID", clientID)
                         .header("Authorization", authorization)
                         .header("Content-Type", "application/json")
+                        .header("Accept", accept)
                         .build();
             } else if (Objects.equals(method, "GET")) {
                 request = HttpRequest.newBuilder()
@@ -138,7 +134,8 @@ public class ConnectWiseClient {
                         .header("Content-Type", "application/json")
                         .header("clientID", clientID)
                         .header("Authorization", authorization)
-                        .build(); // TODO: Add Accept header with specific version (if specified)
+                        .header("Accept", accept)
+                        .build();
             }
         } catch (Exception e) {
             logger.error("ConnectWiseAPICall: Error building HttpRequest: " + e.getMessage());
@@ -256,26 +253,49 @@ public class ConnectWiseClient {
      * @throws TalAdapterSyncException if posting ticket failed
      */
     public void post(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
-        // TODO: Null check for URL_PATTERN_TO_GET_TICKET, Board, and COMPANY_REC_ID
         // Check if URL and API_PATH are not null
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
-                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
-            logger.error("post: URL or API_PATH not setup on Config");
-            throw new TalAdapterSyncException("Cannot create a new ticket: URL or API_PATH not setup on config");
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null ||
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_REC_ID) == null) {
+            String missingProperties = "";
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null) {
+                missingProperties += " - URL";
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+                missingProperties += " - API path";
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null) {
+                missingProperties += " - URL Patter to get Ticket";
+            }
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_REC_ID) == null) {
+                missingProperties += " - Company recID";
+            }
+
+            logger.error("post: following properties not setup on Config:" + missingProperties);
+            throw new TalAdapterSyncException(
+                    "Cannot create a new ticket: missing properties on config:" + missingProperties);
         }
 
-        // TODO: Add URL_PATTERN_TO_GET_TICKET to this URL
-        String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
-                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH);
+        // Warning if Board is null
+        if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.BOARD_ID) == null) {
+            logger.warn("post: Config's board is null. Ticket will be created on default board.");
+        }
 
-        // TODO: Get board and company from ticketSourceConfig/TalConfigService
+        String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET);
+
         String requestBody = "{\n" +
                 "    \"summary\" : \"" + CWTicket.getSummary() + "\",\n" +
+                (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.BOARD_ID) != null ?
                 "    \"board\" : {\n" +
-                "        \"id\": 199\n" + // this should come from ticketSourceConfig or TalConfigService
-                "    },\n" +
+                "        \"id\": "+
+                        config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.BOARD_ID) + "\n" +
+                "    },\n" : "") +
                 "    \"company\": {\n" +
-                "        \"id\": 250\n" + // this should come from ticketSourceConfig or TalConfigService
+                "        \"id\": " +
+                        config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_REC_ID) + "\n" +
                 "    }" +
                 (CWTicket.getStatus() != null ?
                 ",\n" +
