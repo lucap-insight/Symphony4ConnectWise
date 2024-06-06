@@ -4,7 +4,6 @@ import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import org.apache.commons.lang.NotImplementedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -51,7 +50,6 @@ public class TicketServiceImpl {
         if (CWTicket.getUrl() != null) {
             try {
                 refreshedCWTicket = CWClient.get(CWTicket.getUrl());
-
             } catch (TalAdapterSyncException e) {
                 connectionFailedError = e;
             }
@@ -60,20 +58,9 @@ public class TicketServiceImpl {
         // If URL did not work
         if (CWTicket.getId() != null && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
-            String url = validateUrl( // TODO: Use URL_PATTERN_TO_GET_TICKET (modify validate URL as well)
-                    Optional.of(CWClient) // CWClient's config URL
-                            .map(ConnectWiseClient::getConfig)
-                            .map(TicketSystemConfig::getTicketSourceConfig)
-                            .map(configMap -> configMap.get(TicketSourceConfigProperty.URL))
-                            .orElseThrow(() -> new InvalidArgumentException("Config or URL cannot be null")),
-                    Optional.of(CWClient) // CWClient's config API_PATH
-                            .map(ConnectWiseClient::getConfig)
-                            .map(TicketSystemConfig::getTicketSourceConfig)
-                            .map(configMap -> configMap.get(TicketSourceConfigProperty.API_PATH))
-                            .orElseThrow(() -> new InvalidArgumentException("Config or API_PATH cannot be null")),
-                    CWTicket.getId());
-
-            try{
+            String url = "";
+            try {
+                url = createURL(CWTicket);
                 refreshedCWTicket = CWClient.get(url);
             } catch (TalAdapterSyncException e) {
                 connectionFailedError = e;
@@ -425,16 +412,51 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException if any part of the url is null
      * @return the formatted URL based on inputs
      */
-    private String validateUrl(String url, String APIPath, String id) throws TalAdapterSyncException {
-        if (url == null ||APIPath == null || id == null) {
-            logger.error("refresh: Unable to form url - one of [URL, API_PATH, Ticket ID] is null");
-            throw new TalAdapterSyncException("Unable to form URL with missing parameters:" +
-                    (id == null ? " ID" : "") +
-                    (url == null ? " URL":"") +
-                    (APIPath == null? " API_PATH":""),
+    private String createURL(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        // null checks
+        if (CWTicket == null) {
+            logger.error("createURL: CWTicket cannot be null");
+            throw new InvalidArgumentException("CWTicket cannot be null");
+        }
+        if (CWClient.getConfig() == null) {
+            logger.error("createURL: config cannot be null");
+            throw new TalAdapterSyncException("Config cannot be null");
+        }
+        if (CWClient.getConfig().getTicketSourceConfig() == null) {
+            logger.error("createURL: ticket source config cannot be null");
+            throw new TalAdapterSyncException("Ticket source config cannot be null");
+        }
+        if (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+                CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null ||
+                CWClient.getConfig().getTicketSourceConfig()
+                        .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null) {
+            // String of missing properties
+            String missingProperties =
+                    (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null?
+                            " - URL" : "") +
+                    (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null?
+                            " - API Path" : "") +
+                    (CWClient.getConfig().getTicketSourceConfig()
+                            .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null?
+                            " - URL Patter to get Ticket" : "");
+
+            logger.error("createURL: required config properties are missing:" + missingProperties);
+            throw new TalAdapterSyncException("config properties cannot be null:" + missingProperties,
                     HttpStatus.BAD_REQUEST);
         }
-        return url + APIPath + "/" + id;
+        if (CWTicket.getId() == null) {
+            logger.error("createURL: CWTicket's ConnectWise ID cannot be null to form URL");
+            throw new TalAdapterSyncException("CWTicket's ConnectWise ID cannot be null to form URL",
+                    HttpStatus.BAD_REQUEST);
+        }
+
+        String url = CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
+                CWClient.getConfig().getTicketSourceConfig()
+                        .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) + "/" +
+                CWTicket.getId();
+
+        return url;
     }
 
 
