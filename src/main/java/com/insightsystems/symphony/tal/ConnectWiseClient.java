@@ -4,6 +4,7 @@ import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import com.avispl.symphony.api.tal.error.TalRecoverableException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -168,7 +169,9 @@ public class ConnectWiseClient {
 
             // Add HTTP status code response to error. It makes the error possibly recoverable
             throw new TalAdapterSyncException(method + " Request error: " +
-                    (response != null ? response.body() : ""),
+                    (response != null ?
+                            response.body() + " HTTP " +  HttpStatus.valueOf(response.statusCode()) :
+                            "no response body"),
                     response != null ? HttpStatus.valueOf(response.statusCode()) : null);
         }
 
@@ -215,21 +218,37 @@ public class ConnectWiseClient {
 
             // Attempting to get comments
             logger.info("get: retrieving comments");
-            JSONArray jsonArray = ConnectWiseAPICall(url + "/notes", "GET", null)
-                    .getJSONArray("JSONArray");
-            refreshedCWTicket.setComments(jsonArray);
+            boolean commentsFailed = false;
+            if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+                logger.warn("get: URL Pattern to get Comments config property cannot be null");
+                // FIXME: No error here? Sync should continue without syncing comments
+                commentsFailed = true;
+                //throw new TalAdapterSyncException("URL Pattern to get Comments config property cannot be null");
+            }
+            if (!commentsFailed) {
+                try {
+                    JSONArray jsonArray = ConnectWiseAPICall(
+                            url + config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS),
+                            "GET",
+                            null)
+                            .getJSONArray("JSONArray");
+                    refreshedCWTicket.setComments(jsonArray);
 
-            // Set description
-            Optional<ConnectWiseComment> oldestDescriptionComment = refreshedCWTicket.getComments()
-                    .stream()
-                    .filter(ConnectWiseComment::isDescriptionFlag)
-                    .min(Comparator.comparing(ConnectWiseComment::getLastModified));
-            if (oldestDescriptionComment.isPresent()) {
-                logger.info("get: ticket description found");
-                ConnectWiseComment description = oldestDescriptionComment.get();
-                refreshedCWTicket.setDescription(description);
-            } else {
-                logger.info("get: ticket description not found");
+                    // Set description
+                    Optional<ConnectWiseComment> oldestDescriptionComment = refreshedCWTicket.getComments()
+                            .stream()
+                            .filter(ConnectWiseComment::isDescriptionFlag)
+                            .min(Comparator.comparing(ConnectWiseComment::getLastModified));
+                    if (oldestDescriptionComment.isPresent()) {
+                        logger.info("get: ticket description found");
+                        ConnectWiseComment description = oldestDescriptionComment.get();
+                        refreshedCWTicket.setDescription(description);
+                    } else {
+                        logger.info("get: ticket description not found");
+                    }
+                } catch (TalAdapterSyncException e) {
+                    logger.warn("get: unable to retrieve comments/description");
+                }
             }
         }
 
@@ -272,9 +291,9 @@ public class ConnectWiseClient {
                 missingProperties += " - Company recID";
             }
 
-            logger.error("post: following properties not setup on Config:" + missingProperties);
+            logger.error("post: required config properties are missing:" + missingProperties);
             throw new TalAdapterSyncException(
-                    "Cannot create a new ticket: missing properties on config:" + missingProperties);
+                    "Cannot create a new ticket: required config properties are missing:" + missingProperties);
         }
 
         // Warning if Board is null
@@ -344,10 +363,14 @@ public class ConnectWiseClient {
      * @param CWTicket ticket with updated Symphony information
      * @param newTicket ticket to be updated
      */
-    public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) {
+    public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) throws TalAdapterSyncException {
         // null check
         if (CWTicket == null || newTicket == null)
             throw new InvalidArgumentException("CWTicket, newTicket and comments cannot be null");
+        if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+            logger.error("patchComments: URL Pattern to get Comments config property cannot be null");
+            throw new InvalidArgumentException("URL Pattern to get Comments config property cannot be null");
+        }
 
         // CWTicket must have comment set
         if (CWTicket.getComments() == null)
@@ -355,6 +378,9 @@ public class ConnectWiseClient {
 
         if (newTicket.getComments() == null)
             newTicket.setComments(new HashSet<>());
+
+        String notesURL = newTicket.getUrl() +
+                config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS);
 
         // Go for every Symphony ticket
         Set<ConnectWiseComment> commentsToPost = new HashSet<>();
@@ -387,7 +413,7 @@ public class ConnectWiseClient {
                                     "        \"path\": \"text\",\n" +
                                     "        \"value\": \"" + SymphonyComment.getText() + "\"\n" +
                                     "    }]";
-                            ConnectWiseAPICall(newTicket.getUrl() + "/notes/" + CWComment.getThirdPartyId(), "PATCH", body);
+                            ConnectWiseAPICall(notesURL + "/" + CWComment.getThirdPartyId(), "PATCH", body);
                         } catch (TalAdapterSyncException e) {
                             logger.error("patchComments: Attempt failed. HTTP error {} - {}",
                                     e.getHttpStatus() != null ? e.getHttpStatus() : "not specified",
@@ -407,9 +433,13 @@ public class ConnectWiseClient {
                     commentsToPost.size());
 
             String requestBody = "";
+            int commentsToPostSize = commentsToPost.size();
+            int commentNumber = 0;
+            boolean anyCommentsFailed = false;
+            TalAdapterSyncException lastException = null;
 
             for ( ConnectWiseComment CWComment : commentsToPost ) {
-
+                commentNumber++;
                 requestBody = "{\n" +
                         "    \"text\" : \"" + CWComment.getText() + "\",\n" +
                         "    \"detailDescriptionFlag\": " + CWComment.isDescriptionFlag() + ",\n" +
@@ -423,17 +453,29 @@ public class ConnectWiseClient {
                         "}";
 
                 try {
-                    JSONObject jsonObject = ConnectWiseAPICall(CWTicket.getUrl() + "/notes", "POST", requestBody);
+                    JSONObject jsonObject = ConnectWiseAPICall(notesURL, "POST", requestBody);
                     // Add ThirdParty ticket ID to ticket
-                    logger.info("updateComments: POST Successful. Updating Comment ID on Symphony");
+                    logger.info("updateComments: POST {}/{} Successful. Updating Comment ID on Symphony",
+                            commentNumber,
+                            commentsToPostSize);
                     CWComment.setThirdPartyId(jsonObject.getInt("id") + "");
                 } catch (TalAdapterSyncException e) {
-                    logger.error("updateComments: Unable to POST comment Symphony ID: {}. HTTP error: {}",
+                    anyCommentsFailed = true;
+                    lastException = e;
+                    logger.error("updateComments: Unable to POST comment {}/{} - Symphony ID: {}. HTTP error: {}",
+                            commentNumber,
+                            commentsToPostSize,
                             CWComment.getSymphonyId(),
                             e.getHttpStatus() != null ? e.getHttpStatus() : "not specified");
                 }
             }
-            logger.info("updateComments: Finished POSTing comments");
+            if (anyCommentsFailed) {
+                logger.error("updateComments: unable to POST comment(s)");
+                if (lastException != null)
+                    throw new TalAdapterSyncException(lastException.getMessage() == null? "" : "");
+            } else {
+                logger.info("updateComments: Finished POSTing comments");
+            }
         } else {
             logger.info("updateComments: No comments to POST");
         }
@@ -444,9 +486,13 @@ public class ConnectWiseClient {
      *
      * @param CWTicket Ticket with description to be added to CW
      */
-    public void postDescription(ConnectWiseTicket CWTicket) {
+    public void postDescription(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         if (CWTicket == null)
             throw new InvalidArgumentException("CWTicket cannot be null");
+        if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+            logger.error("postDescription: URL Pattern to get Comments config property cannot be null");
+            throw new InvalidArgumentException("URL Pattern to get Comments config property cannot be null");
+        }
 
         String description = "New Symphony ticket: No description found";
         if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
@@ -464,12 +510,16 @@ public class ConnectWiseClient {
                 "}";
 
         try {
-            JSONObject newDescription = ConnectWiseAPICall(CWTicket.getUrl() + "/notes", "POST", requestBody);
+            logger.info("Attempting to POST ticket description");
+            String url = CWTicket.getUrl() +
+                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS);
+            JSONObject newDescription = ConnectWiseAPICall(url, "POST", requestBody);
             CWTicket.AddJSONDescription(newDescription);
         } catch (TalAdapterSyncException e) {
             logger.error("postDescription: Error posting description comment. Code {} - {}",
                     e.getHttpStatus() == null ? "not specified" : e.getHttpStatus(),
                     e.getMessage());
+            throw e;
         }
     }
 
