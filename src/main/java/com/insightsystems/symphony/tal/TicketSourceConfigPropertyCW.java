@@ -11,6 +11,6 @@ public interface TicketSourceConfigPropertyCW extends TicketSourceConfigProperty
     String COMPANY_ID = "companyId"; // PUBLIC - REQUIRED - Used in Authorization header (sometimes the same as loginCompanyId)
     String PUBLIC_KEY = "publicKey"; // SECRET - REQUIRED - Used in Authorization header
     String PRIVATE_KEY = "privateKey"; // SECRET - REQUIRED - Used in Authorization header
-    String COMPANY_REC_ID = "companyRecId"; // PUBLIC - REQUIRED - company's recID in ConnectWise's database
+    String COMPANY_REC_ID = "companyRecId"; // PUBLIC - REQUIRED - company's recID for tickets in ConnectWise's database
     String BOARD_ID = "boardId"; // PUBLIC - ID of the board to post ticket to
 }
