@@ -114,9 +114,10 @@ public class ConnectWiseClient {
         HttpRequest request = null;
 
         // Set up Accept header
-        String accept = "application/vnd.connectwise.com+json";
+        String accept = "*/*";
         if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.API_VERSION) != null) {
-            accept += "; version=" + config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.API_VERSION);
+            accept += "application/vnd.connectwise.com+json; version=" +
+                    config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.API_VERSION);
         }
 
         try {
