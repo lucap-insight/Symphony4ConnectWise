@@ -109,6 +109,32 @@ public class TalAdapterImpl implements TalAdapter {
         talConfigService.subscribeForTicketSystemConfigUpdate(accountId,
                 (ticketSystemConfig) -> setConfig(ticketSystemConfig));
 
+        // Add hardcoded priority and status mapping
+        Map<String, String> customerPriorityMappingForSymphony  = new HashMap<>();
+        customerPriorityMappingForSymphony.put("Priority 1", "Critical");
+        customerPriorityMappingForSymphony.put("Priority 2", "Major");
+        customerPriorityMappingForSymphony.put("Priority 3", "Minor");
+        customerPriorityMappingForSymphony.put("Priority 4", "Informational");
+        config.setPriorityMappingForSymphony(customerPriorityMappingForSymphony);
+        Map<String, String> customerPriorityMappingForThirdParty  = new HashMap<>();
+        customerPriorityMappingForThirdParty.put("Critical", "Priority 1");
+        customerPriorityMappingForThirdParty.put("Major", "Priority 2");
+        customerPriorityMappingForThirdParty.put("Minor", "Priority 3");
+        customerPriorityMappingForThirdParty.put("Informational", "Priority 4");
+        config.setPriorityMappingForThirdParty(customerPriorityMappingForThirdParty);
+        Map<String, String> statusMappingForSymphony = new HashMap<>();
+        statusMappingForSymphony.put("New", "New");
+        statusMappingForSymphony.put("Open", "Open");
+        statusMappingForSymphony.put("ClosePending", "ClosePending");
+        statusMappingForSymphony.put("Close", "Close");
+        config.setStatusMappingForSymphony(statusMappingForSymphony);
+        Map<String, String> statusMappingForThirdParty = new HashMap<>();
+        statusMappingForThirdParty.put("New", "New");
+        statusMappingForThirdParty.put("Open", "Open");
+        statusMappingForThirdParty.put("Close", "Close");
+        statusMappingForThirdParty.put("ClosePending", "ClosePending");
+        config.setStatusMappingForThirdParty(statusMappingForThirdParty);
+
         CWClient = new ConnectWiseClient(config);
         ticketService = new TicketServiceImpl(CWClient);
     }
