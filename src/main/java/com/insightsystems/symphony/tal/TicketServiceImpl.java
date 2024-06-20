@@ -304,7 +304,7 @@ public class TicketServiceImpl {
                 logger.info("updatePriority: updating CW priority from {} to {}",
                         CWPriority,
                         CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
-                returnVal = " {\n" +
+                returnVal = " {\n" + // FIXME: Priority patches need to be done by ID even when it is mapped to the name
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"priority/id\",\n" +
                         "        \"value\": \"" + CWTicket.getPriority() + "\"\n" +

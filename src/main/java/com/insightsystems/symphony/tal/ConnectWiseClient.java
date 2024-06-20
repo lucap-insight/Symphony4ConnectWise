@@ -329,7 +329,7 @@ public class ConnectWiseClient {
                 "    }" : "\n") +
                 (CWTicket.getPriority() != null ?
                 ",\n" +
-                "    \"priority\" : {\n" + // TODO: Email about custom mapping?
+                "    \"priority\" : {\n" +
                 "        \"id\": "+ CWTicket.getPriority() +"\n" + // FIXME: Priority should be mapped by name, not id
                 "    }\n" : "\n") +
                 //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
