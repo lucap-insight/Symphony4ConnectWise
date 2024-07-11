@@ -304,20 +304,28 @@ public class TicketServiceImpl {
                 logger.info("updatePriority: updating CW priority from {} to {}",
                         CWPriority,
                         CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
-                returnVal = " {\n" + // FIXME: Priority patches need to be done by ID even when it is mapped to the name
-                        "        \"op\": \"" + op + "\",\n" +
-                        "        \"path\": \"priority/id\",\n" +
-                        "        \"value\": \"" + CWTicket.getPriority() + "\"\n" +
-                        "    }\n";
+                // Get priority ID based on priority name
+                String priorityID = null;
+                try {
+                    priorityID = CWClient.getPriorityID(CWTicket.getPriority()); // Try to find matching priority in CW
+                } catch (TalAdapterSyncException e) {
+                    logger.error("UpdatePriority: Unable to find priority ID in ConnectWise with matching name.");
+                }
+                if (priorityID != null) { // If priority ID was found, set values
+                    returnVal = " {\n" + // FIXME: Priority patches need to be done by ID even when it is mapped to the name
+                            "        \"op\": \"" + op + "\",\n" +
+                            "        \"path\": \"priority/id\",\n" +
+                            "        \"value\": \"" + priorityID + "\"\n" +
+                            "    }\n";
 
-                // Add comment for change in priority
-                String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
-                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority());
-                ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
-                        null,
-                        false, true, false);
-                CWTicket.addComment(priorityChange);
-
+                    // Add comment for change in priority
+                    String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
+                            CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority());
+                    ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
+                            null,
+                            false, true, false);
+                    CWTicket.addComment(priorityChange);
+                }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
                         CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()),
