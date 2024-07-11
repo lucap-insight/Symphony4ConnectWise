@@ -358,6 +358,21 @@ public class ConnectWiseClient {
     //* ----------------------------- HELPER METHODS ----------------------------- *//
 
     /**
+     * Gets ConnectWise Priority ID based on Priority name.
+     * This is needed because CW cannot do operations with the priority name, but the IDs can vary across
+     * multiple CW instances.
+     * @param priorityName Name of priority
+     * @return CW ID for priority
+     */
+    public String getPriorityID(String priorityName) throws TalAdapterSyncException {
+        String retVal = null;
+
+        
+
+        return retVal;
+    }
+
+    /**
      * Updates ConnectWise comments based on SymphonyTicket.
      * No comment flow from ConnectWise to Symphony.
      *
