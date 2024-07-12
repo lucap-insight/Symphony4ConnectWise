@@ -391,7 +391,6 @@ public class ConnectWiseClient {
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
                 "/service/priorities" +
                 "?conditions=name%20=%20%22"+ urlSafePriorityName + "%22";
-        logger.info("URL for priority: " + url);
 
         // Make the request
         JSONArray priority = ConnectWiseAPICall(url, "GET", null)
@@ -399,7 +398,7 @@ public class ConnectWiseClient {
         if (priority != null) {
             JSONObject firstPriorityFound = priority.getJSONObject(0); // Get first priority found
             if (firstPriorityFound != null) {
-                retVal = firstPriorityFound.getString("name"); // Get priority's name
+                retVal = firstPriorityFound.getInt("id") + ""; // Get priority's name
             }
         }
 
