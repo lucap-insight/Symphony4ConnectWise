@@ -180,7 +180,7 @@ public class ConnectWiseTicket {
 
         // priority
         try {
-            setPriority(jsonObject.getJSONObject("priority").getInt("id") + "");
+            setPriority(jsonObject.getJSONObject("priority").getString("name"));
         } catch (JSONException e) {
             logger.info("priority/id not found on jsonObject");
         }
