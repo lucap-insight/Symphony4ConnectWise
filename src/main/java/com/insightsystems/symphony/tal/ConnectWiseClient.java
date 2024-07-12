@@ -362,12 +362,46 @@ public class ConnectWiseClient {
      * This is needed because CW cannot do operations with the priority name, but the IDs can vary across
      * multiple CW instances.
      * @param priorityName Name of priority
-     * @return CW ID for priority
+     * @return CW ID for priority or null if ID is not found
+     * @throws TalAdapterSyncException if an error occurs with the call
      */
     public String getPriorityID(String priorityName) throws TalAdapterSyncException {
         String retVal = null;
 
-        
+        // null checks
+        if (config == null) {
+            logger.error("getPriorityID: config cannot be null");
+            throw new TalAdapterSyncException("config cannot be null");
+        }
+        if (config.getTicketSourceConfig() == null) {
+            logger.error("getPriorityID: ticket source config cannot be null");
+            throw new TalAdapterSyncException("ticket source config cannot be null");
+        }
+        if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+            config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+            logger.error("getPriorityID: unable to form URL. URL or API Path config properties cannot be null");
+            throw new TalAdapterSyncException("URL or API Path config properties cannot be null");
+        }
+
+        // First, make sure priority name has no spaces
+        String urlSafePriorityName = priorityName.replace(" ", "%20");
+
+        // Then, craft the URL to get the priority
+        String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
+                "/service/priorities" +
+                "?conditions=name%20=%20%22"+ urlSafePriorityName + "%22";
+        logger.info("URL for priority: " + url);
+
+        // Make the request
+        JSONArray priority = ConnectWiseAPICall(url, "GET", null)
+                .getJSONArray("JSONArray"); // Get JSONArray from response
+        if (priority != null) {
+            JSONObject firstPriorityFound = priority.getJSONObject(0); // Get first priority found
+            if (firstPriorityFound != null) {
+                retVal = firstPriorityFound.getString("name"); // Get priority's name
+            }
+        }
 
         return retVal;
     }
