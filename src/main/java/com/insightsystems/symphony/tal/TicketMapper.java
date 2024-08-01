@@ -104,13 +104,21 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        if (config == null || config.getStatusMappingForThirdParty() == null)
-            throw new InvalidArgumentException("Status mapping for third party cannot be null.");
+        if (config == null)
+            throw new InvalidArgumentException("config cannot be null.");
 
-        // It's ok for the status here to be null, it will just be set to ConnectWise's default
-        String thirdPartyStatus = config.getStatusMappingForThirdParty().get(ticket.getStatus());
+        String thirdPartyStatus = null;
 
-        if (thirdPartyStatus == null)
+        if (config.getStatusMappingForThirdParty() != null) {
+            thirdPartyStatus = config.getStatusMappingForThirdParty().get(ticket.getStatus());
+
+            if (thirdPartyStatus == null) // if getting the mapping failed, get the default mapping
+                thirdPartyStatus = DefaultTicketMappings.getStatusMappingForThirdParty().get(ticket.getStatus());
+        } else { // if the status mapping is null, try the default mappings
+            thirdPartyStatus = DefaultTicketMappings.getStatusMappingForThirdParty().get(ticket.getStatus());
+        }
+
+        if (thirdPartyStatus == null) // if it's still null cancel
             return;
 
         CWTicket.setStatus(thirdPartyStatus);
@@ -123,10 +131,19 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        if (config == null || config.getPriorityMappingForThirdParty() == null)
-            throw new InvalidArgumentException("Priority mapping for third party cannot be null");
+        if (config == null)
+            throw new InvalidArgumentException("config cannot be null");
 
-        String thirdPartyPriority = config.getPriorityMappingForThirdParty().get(ticket.getPriority());
+        String thirdPartyPriority = null;
+
+        if (config.getPriorityMappingForThirdParty() != null) {
+            thirdPartyPriority = config.getPriorityMappingForThirdParty().get(ticket.getPriority());
+            if (thirdPartyPriority == null) {
+                thirdPartyPriority = DefaultTicketMappings.getPriorityMappingForThirdParty().get(ticket.getPriority());
+            }
+        } else {
+            thirdPartyPriority = DefaultTicketMappings.getPriorityMappingForThirdParty().get(ticket.getPriority());
+        }
 
         if (thirdPartyPriority == null)
             return;
@@ -238,11 +255,19 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapTicketStatus(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        if (config == null || config.getStatusMappingForSymphony() == null)
-            throw new InvalidArgumentException("Status mapping for Symphony cannot be null");
+        if (config == null)
+            throw new InvalidArgumentException("config cannot be null");
 
-        String symphonyStatus = config.getStatusMappingForSymphony().get(CWTicket.getStatus());
+        String symphonyStatus = null;
 
+        if (config.getStatusMappingForSymphony() != null) {
+            symphonyStatus = config.getStatusMappingForSymphony().get(CWTicket.getStatus());
+
+            if (symphonyStatus == null) // if getting the mapping failed, get the default mapping
+                symphonyStatus = DefaultTicketMappings.getStatusMappingForSymphony().get(CWTicket.getStatus());
+        } else { // if the status mapping is null, try the default mappings
+            symphonyStatus = DefaultTicketMappings.getStatusMappingForSymphony().get(CWTicket.getStatus());
+        }
         if (symphonyStatus == null)
             return;
 
@@ -256,10 +281,20 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void remapTicketPriority(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        if (config == null || config.getPriorityMappingForSymphony() == null)
-            throw new InvalidArgumentException("Priority mapping for Symphony cannot be null");
+        if (config == null)
+            throw new InvalidArgumentException("config cannot be null");
 
-        String symphonyPriority = config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+        String symphonyPriority = null;
+
+        if (config.getPriorityMappingForSymphony() != null) {
+            symphonyPriority = config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+
+            if (symphonyPriority == null) {
+                symphonyPriority = DefaultTicketMappings.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+            }
+        } else {
+            symphonyPriority = DefaultTicketMappings.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+        }
 
         if (symphonyPriority == null)
             return;
