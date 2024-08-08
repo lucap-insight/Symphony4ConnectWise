@@ -336,19 +336,36 @@ public class TicketMapper {
         if (CWTicket.getComments() == null) // if there are no comments, there is nothing to map
             return;
 
-        Map<String, String> mapIdToCreator = ticket.getComments().stream()
-                .collect(Collectors.toMap(
-                        a -> Objects.requireNonNullElse(a.getSymphonyId(), "null"),
-                        a -> Objects.requireNonNullElse(a.getCreator(), "null")));
-
-        Optional.ofNullable(CWTicket.getComments())
-                .orElse(Collections.emptySet())
-                .stream()
-                .forEach(c -> symphonyComments.add(new Comment(c.getSymphonyId(), c.getThirdPartyId(),
-                        // If CW comment has a creator map it back to symphony, otherwise use the creator of the Symphony
-                        //comment that has the same Symphony ID as this CW comment
-                        c.getCreator() != null ? remapUser(c.getCreator(), config) : mapIdToCreator.get(c.getSymphonyId()),
-                        c.getText(), c.getLastModified())));
+        for (ConnectWiseComment CWComment:
+                CWTicket.getComments()) {
+            // Find creator
+            String mappedCreator = null;
+            // If CWComment has creator, map the creator back
+            if (CWComment.getCreator() != null) {
+                mappedCreator = remapUser(CWComment.getCreator(), config);
+            } else {
+                // If CWComment does not have a creator, find the matching Symphony comment
+                for (Comment SymphonyComment : ticket.getComments()) {
+                    if ((SymphonyComment.getSymphonyId() != null &&
+                            Objects.equals(SymphonyComment.getSymphonyId(), CWComment.getSymphonyId())) ||
+                            (SymphonyComment.getThirdPartyId() != null &&
+                            Objects.equals(SymphonyComment.getThirdPartyId(), CWComment.getThirdPartyId()))) {
+                        // Set creator to matching Symphony creator
+                        mappedCreator = SymphonyComment.getCreator();
+                        break;
+                    }
+                }
+            }
+            symphonyComments.add(
+                    new Comment(
+                            CWComment.getSymphonyId(),
+                            CWComment.getThirdPartyId(),
+                            mappedCreator,
+                            CWComment.getText(),
+                            CWComment.getLastModified()
+                    )
+            );
+        }
 
         ticket.setComments(symphonyComments);
     }
