@@ -302,6 +302,9 @@ public class ConnectWiseClient {
             logger.warn("post: Config's board is null. Ticket will be created on default board.");
         }
 
+        // Try to get priority ID from name
+        String priorityId = getPriorityID(CWTicket.getPriority());
+
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET);
@@ -327,10 +330,10 @@ public class ConnectWiseClient {
                 "    \"owner\" : {\n" +
                 "        \"identifier\": \""+ CWTicket.getAssignee() +"\"\n" +
                 "    }" : "\n") +
-                (CWTicket.getPriority() != null ?
+                (priorityId != null ?
                 ",\n" +
                 "    \"priority\" : {\n" +
-                "        \"id\": "+ CWTicket.getPriority() +"\n" + // FIXME: Priority should be mapped by name, not id
+                "        \"id\": "+ priorityId +"\n" + // FIXME: Priority should be mapped by name, not id
                 "    }\n" : "\n") +
                 //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
                 "}";
