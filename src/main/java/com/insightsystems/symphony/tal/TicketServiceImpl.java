@@ -325,6 +325,8 @@ public class TicketServiceImpl {
                             null,
                             false, true, false);
                     CWTicket.addComment(priorityChange);
+                } else {
+                    logger.warn("UpdatePriority: No priority found in ConnectWise with matching name. The name must match exactly.");
                 }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
