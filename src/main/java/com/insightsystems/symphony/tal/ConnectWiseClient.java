@@ -385,6 +385,12 @@ public class ConnectWiseClient {
             logger.error("getPriorityID: unable to form URL. URL or API Path config properties cannot be null");
             throw new TalAdapterSyncException("URL or API Path config properties cannot be null");
         }
+        if (priorityName == null) {
+            logger.info("getPriorityID: Priority name is null");
+            return null;
+        }
+
+        logger.info("getPriorityID: Getting Priority ID in ConnectWise using Priority name");
 
         // First, make sure priority name has no spaces
         String urlSafePriorityName = priorityName.replace(" ", "%20");
@@ -399,9 +405,13 @@ public class ConnectWiseClient {
         JSONArray priority = ConnectWiseAPICall(url, "GET", null)
                 .getJSONArray("JSONArray"); // Get JSONArray from response
         if (priority != null) {
-            JSONObject firstPriorityFound = priority.getJSONObject(0); // Get first priority found
-            if (firstPriorityFound != null) {
-                retVal = firstPriorityFound.getInt("id") + ""; // Get priority's name
+            if (!priority.isEmpty()) {
+                JSONObject firstPriorityFound = priority.getJSONObject(0); // Get first priority found
+                if (firstPriorityFound != null) {
+                    retVal = firstPriorityFound.getInt("id") + ""; // Get priority's name
+                }
+            } else {
+                logger.warn("getPriorityID: Failed to find priority {} in ConnectWise", priorityName);
             }
         }
 
