@@ -449,18 +449,19 @@ public class TicketServiceImpl {
             logger.error("createURL: ticket source config cannot be null");
             throw new TalAdapterSyncException("Ticket source config cannot be null");
         }
-        if (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
-                CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null ||
-                CWClient.getConfig().getTicketSourceConfig()
-                        .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null) {
+
+        Map<String, String> ticketSourceConfig = CWClient.getConfig().getTicketSourceConfig();
+
+        if (ticketSourceConfig.get(TicketSourceConfigProperty.URL) == null ||
+                ticketSourceConfig.get(TicketSourceConfigProperty.API_PATH) == null ||
+                ticketSourceConfig.get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null) {
             // String of missing properties
             String missingProperties =
-                    (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null?
+                    (ticketSourceConfig.get(TicketSourceConfigProperty.URL) == null?
                             " - URL" : "") +
-                    (CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null?
+                    (ticketSourceConfig.get(TicketSourceConfigProperty.API_PATH) == null?
                             " - API Path" : "") +
-                    (CWClient.getConfig().getTicketSourceConfig()
-                            .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null?
+                    (ticketSourceConfig.get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null?
                             " - URL Patter to get Ticket" : "");
 
             logger.error("createURL: required config properties are missing:" + missingProperties);
@@ -473,10 +474,9 @@ public class TicketServiceImpl {
                     HttpStatus.BAD_REQUEST);
         }
 
-        String url = CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
-                CWClient.getConfig().getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
-                CWClient.getConfig().getTicketSourceConfig()
-                        .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) + "/" +
+        String url = ticketSourceConfig.get(TicketSourceConfigProperty.URL) +
+                ticketSourceConfig.get(TicketSourceConfigProperty.API_PATH) +
+                ticketSourceConfig.get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) + "/" +
                 CWTicket.getId();
 
         return url;
