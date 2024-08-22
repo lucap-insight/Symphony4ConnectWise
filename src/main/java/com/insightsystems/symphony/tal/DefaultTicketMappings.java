@@ -22,10 +22,10 @@ public class DefaultTicketMappings {
 
         statusMappingForSymphony.put("Open", "Open");
         statusMappingForSymphony.put("ClosePending", "ClosePending");
-        statusMappingForSymphony.put("Closed", "Close");
+        statusMappingForSymphony.put("Closed", "Closed");
 
         statusMappingForThirdParty.put("Open", "Open");
-        statusMappingForThirdParty.put("Close", "Close");
+        statusMappingForThirdParty.put("Closed", "Closed");
         statusMappingForThirdParty.put("ClosePending", "ClosePending");
     }
 
