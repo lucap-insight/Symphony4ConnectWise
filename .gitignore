@@ -29,6 +29,9 @@ replay_pid*
 # bin
 /bin/
 
+# tests
+/src/test/resources/*
+
 # Compiled class files
 *.class
 
