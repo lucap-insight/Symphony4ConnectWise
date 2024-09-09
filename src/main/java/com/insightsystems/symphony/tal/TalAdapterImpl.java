@@ -11,8 +11,6 @@ import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
-import com.insightsystems.symphony.tal.mocks.MockTalConfigService;
-import com.insightsystems.symphony.tal.mocks.MockTalProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,9 +18,6 @@ import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
-//import org.apache.logging.log4j.Level;
-//import org.apache.logging.log4j.LogManager;
-//import org.apache.logging.log4j.Logger;
 
 
 /**
@@ -39,13 +34,11 @@ public class TalAdapterImpl implements TalAdapter {
     private static final Logger logger = LoggerFactory.getLogger(TalAdapterImpl.class);
 
     /**
-     * Instance of a TalConfigService, set by Symphony via {@link #setTalConfigService(TalConfigService)}
      * In sake of testing simplicity, one may use MockTalConfigService provided with this sample
      */
     private TalConfigService talConfigService;
 
     /**
-     * Instance of a TalProxy, set by Symphony via {@link #setTalProxy(TalProxy)}
      * In sake of testing simplicity, one may use MockTalProxy provided with this sample
      */
     private TalProxy talProxy;
@@ -59,7 +52,7 @@ public class TalAdapterImpl implements TalAdapter {
     /**
      * Instance of ConnectWiseClient that handles all communication with ConnectWise
      */
-    private ConnectWiseClient CWClient;
+    private ConnectWiseClient restCWClient;
 
     /**
      * Instance of TicketServiceImpl that handles the ticket logic
@@ -74,13 +67,9 @@ public class TalAdapterImpl implements TalAdapter {
     /**
      * Default no-arg constructor
      */
-    public TalAdapterImpl() {
-        /**
-         * Uncomment following in order to use mocks instead of setter-injected objects
-         * Warning: use for development purposes only!
-         */
-        this.talConfigService = new MockTalConfigService();
-        this.talProxy = new MockTalProxy();
+    public TalAdapterImpl(TalConfigService talConfigService, TalProxy talProxy) {
+        this.talConfigService = talConfigService;
+        this.talProxy = talProxy;
     }
 
     /**
@@ -109,8 +98,8 @@ public class TalAdapterImpl implements TalAdapter {
         talConfigService.subscribeForTicketSystemConfigUpdate(accountId,
                 (ticketSystemConfig) -> setConfig(ticketSystemConfig));
 
-        CWClient = new ConnectWiseClient(config);
-        ticketService = new TicketServiceImpl(CWClient);
+        restCWClient = new ConnectWiseClient(config);
+        ticketService = new TicketServiceImpl(restCWClient);
     }
 
     /**
@@ -232,16 +221,8 @@ public class TalAdapterImpl implements TalAdapter {
         }
     }
 
-    public void setTalConfigService(TalConfigService talConfigService) {
-        this.talConfigService = talConfigService;
-    }
-
     public TalConfigService getTalConfigService() {
         return this.talConfigService;
-    }
-
-    public void setTalProxy(TalProxy talProxy) {
-        this.talProxy = talProxy;
     }
 
     public TalProxy getTalProxy() {
