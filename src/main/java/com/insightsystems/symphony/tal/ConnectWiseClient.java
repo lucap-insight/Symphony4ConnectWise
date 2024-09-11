@@ -273,6 +273,10 @@ public class ConnectWiseClient {
      * @throws TalAdapterSyncException if posting ticket failed
      */
     public void post(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+        if (config == null || config.getTicketSourceConfig() == null) {
+            throw new TalAdapterSyncException("ConnectWiseClient config or ticketSourceConfig cannot be null");
+        }
+
         // Check if URL and API_PATH are not null
         if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null ||
@@ -295,6 +299,11 @@ public class ConnectWiseClient {
             logger.error("post: required config properties are missing:" + missingProperties);
             throw new TalAdapterSyncException(
                     "Cannot create a new ticket: required config properties are missing:" + missingProperties);
+        }
+
+        if (CWTicket == null) {
+            logger.error("post: CWTicket cannot be null");
+            throw new InvalidArgumentException("Error trying to post ticket. ConnectWiseClient received a null value.");
         }
 
         // Warning if Board is null
