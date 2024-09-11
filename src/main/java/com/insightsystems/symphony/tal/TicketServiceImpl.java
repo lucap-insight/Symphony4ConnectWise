@@ -122,12 +122,6 @@ public class TicketServiceImpl {
         if (CWTicket.getExtraParams() == null)
             CWTicket.setExtraParams(new HashMap<>());
 
-        // CHANGE SUMMARY IF TICKET HAS FAILED
-        if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") && // If connectionFailed param exists
-                Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) { // If ticket is not new (has been synced before)
-            CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
-        }
-
 
         // Adding initial priority comment
         if (CWClient.getConfig() != null && CWClient.getConfig().getPriorityMappingForSymphony() != null) { // null check
@@ -148,6 +142,12 @@ public class TicketServiceImpl {
                 logger.info("createTicket: summary is null. Using standard summary for new ticket.");
                 CWTicket.setSummary("NEW Symphony ticket");
             }
+        }
+
+        // CHANGE SUMMARY IF TICKET HAS FAILED
+        if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true") && // If connectionFailed param exists
+                Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) { // If ticket is not new (has been synced before)
+            CWTicket.setSummary("Failed to connect - " + CWTicket.getSummary());
         }
 
         // Create new ticket on ConnectWise
@@ -462,7 +462,7 @@ public class TicketServiceImpl {
                     (ticketSourceConfig.get(TicketSourceConfigProperty.API_PATH) == null?
                             " - API Path" : "") +
                     (ticketSourceConfig.get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET) == null?
-                            " - URL Patter to get Ticket" : "");
+                            " - URL Pattern to get Ticket" : "");
 
             logger.error("createURL: required config properties are missing:" + missingProperties);
             throw new TalAdapterSyncException("config properties cannot be null:" + missingProperties,
