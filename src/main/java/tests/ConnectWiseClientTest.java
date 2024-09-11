@@ -21,6 +21,12 @@ import java.util.Map;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+/**
+ * Tester class for ConnectWiseClient.
+ *
+ * @author LucaP<br> Created on 28 Nov 2023
+ * @since 5.8
+ */
 public class ConnectWiseClientTest {
 
     private static TicketSystemConfig config;

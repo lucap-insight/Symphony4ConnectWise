@@ -57,7 +57,8 @@ public class TicketMapper {
      * Converts a {@link ConnectWiseTicket} into a {@link TalTicket}
      * and performs statuses/priorities/etc mapping.
      *
-     * @param ticket ticket instance that needs to be mapped
+     * @param ticket original Symphony ticket. This instance is modified and CWTicket is mapped to this instance.
+     * @param CWTicket ticket instance that needs to be mapped
      * @param config adapter configuration
      * @return the mapped ticket
      */

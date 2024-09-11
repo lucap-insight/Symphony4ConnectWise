@@ -66,6 +66,9 @@ public class TalAdapterImpl implements TalAdapter {
 
     /**
      * Default no-arg constructor
+     *
+     * @param talConfigService Dependency injection for a {@link TalConfigService}
+     * @param talProxy Dependency injection for a {@link TalProxy}
      */
     public TalAdapterImpl(TalConfigService talConfigService, TalProxy talProxy) {
         this.talConfigService = talConfigService;
@@ -115,7 +118,8 @@ public class TalAdapterImpl implements TalAdapter {
      * Invoked on each ticket update that happens in Symphony
      * @param talTicket instance of ticket that contains updated data. Ticket always come containing all fields even those that didn't change
      * @return instance of TalTicket that contains thirdPartyId and thirdPartyLink set for ticket, comments and attachments provisioned in 3rd party system
-     * @throws TalAdapterSyncException
+     * @throws TalAdapterSyncException if sync failed. Throws a TalRecoverableException if error could be fixed by trying again.
+     * Throws a TalNotRecoverableException if error is not recoverable.
      */
     @Override
     public TalTicket syncTalTicket(TalTicket talTicket) throws TalAdapterSyncException {

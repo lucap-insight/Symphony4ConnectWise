@@ -52,6 +52,11 @@ public class ConnectWiseComment {
 
     //* ----------------------------- METHODS ----------------------------- *//
 
+    /**
+     * ConnectWiseComment constructor.
+     *
+     * @param text Comment content
+     */
     public ConnectWiseComment(String text) {
         setText(text);
         setDescriptionFlag(false);
@@ -71,6 +76,15 @@ public class ConnectWiseComment {
         setResolutionFlag(resolutionFlag);
     }
 
+    /**
+     * ConnectWiseComment constructor.
+     *
+     * @param symphonyId
+     * @param thirdPartyId
+     * @param creator
+     * @param text
+     * @param lastModified
+     */
     public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, Long lastModified) {
         setSymphonyId(symphonyId);
         setThirdPartyId(thirdPartyId);

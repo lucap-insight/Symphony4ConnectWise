@@ -10,6 +10,12 @@ import org.springframework.http.HttpStatus;
 
 import java.util.*;
 
+/**
+ * Implements logic for creating/updating/retrieving tickets from ConnectWise.
+ *
+ * @author LucaP<br> Created on 28 Nov 2023
+ * @since 5.8
+ */
 public class TicketServiceImpl {
     //* ----------------------------- VARIABLES ----------------------------- *//
 
@@ -115,7 +121,7 @@ public class TicketServiceImpl {
      * Creates new ticket in ConnectWise with CWTicket's information.
      * Updates CWTicket with ConnectWise's url and ticket number
      * @param CWTicket ticket to post
-     * @throws TalAdapterSyncException
+     * @throws TalAdapterSyncException if post call fails
      */
     public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // Make sure ticket has extra params
@@ -168,6 +174,7 @@ public class TicketServiceImpl {
      * Updates CW with the information in CWTicket
      * @param CWTicket Ticket with the latest information from Symphony
      * @param refreshedTicket Ticket to be updated
+     * @throws TalAdapterSyncException if patch call(s) fail
      */
     public void updateTicket(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
         // HTTP PATCH

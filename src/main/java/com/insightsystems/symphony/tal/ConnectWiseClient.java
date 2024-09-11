@@ -19,6 +19,12 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.*;
 
+/**
+ * Sends and receives HTTP API requests to and from ConnectWise.
+ *
+ * @author LucaP<br> Created on 28 Nov 2023
+ * @since 5.8
+ */
 public class ConnectWiseClient {
 
     //* ----------------------------- VARIABLES ----------------------------- *//
@@ -257,10 +263,11 @@ public class ConnectWiseClient {
     }
 
     /**
-     * Updates CWTicket based on requestBody with a PATCH API call
+     * Updates a ConnectWise ticket on ConnectWise based on requestBody with a PATCH API call.
      *
      * @param url to update
      * @param requestBody PATCH call request body
+     * @throws TalAdapterSyncException if request fails
      */
     public void patch(String url, String requestBody) throws TalAdapterSyncException {
         ConnectWiseAPICall(url, "PATCH", requestBody);
@@ -429,10 +436,12 @@ public class ConnectWiseClient {
 
     /**
      * Updates ConnectWise comments based on SymphonyTicket.
+     * Uses the comments in newTicket to compare with CWTicket and understand what needs to be created, what is already created, and what needs an update.
      * No comment flow from ConnectWise to Symphony.
      *
      * @param CWTicket ticket with updated Symphony information
      * @param newTicket ticket to be updated
+     * @throws TalAdapterSyncException if any request to POST new comments fail
      */
     public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) throws TalAdapterSyncException {
         // null check
@@ -556,6 +565,7 @@ public class ConnectWiseClient {
      * Posts description comment in ConnectWise using the ticket's url
      *
      * @param CWTicket Ticket with description to be added to CW
+     * @throws TalAdapterSyncException if API request to post description fails
      */
     public void postDescription(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         if (CWTicket == null)

@@ -129,7 +129,7 @@ public class ConnectWiseTicket {
      * @param symphonyLink ticket's link in Symphony
      * @param id ticket's ConnectWise ID
      * @param url ticket's ConnectWise URL
-     * @param extraParams
+     * @param extraParams Additional parameters
      */
     public ConnectWiseTicket(String symphonyId, String symphonyLink, String id, String url, Map<String, String> extraParams) {
         // logger.info("Initializing ConnectWise ticket")
