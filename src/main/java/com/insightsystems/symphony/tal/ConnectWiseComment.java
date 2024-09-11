@@ -1,22 +1,52 @@
 package com.insightsystems.symphony.tal;
 
+/**
+ * Representation of ConnectWise comment for TAL adapter
+ *
+ * @author LucaP<br> Created on 13 Sep 2023
+ * @since 5.8
+ */
 public class ConnectWiseComment {
     //* ----------------------------- VARIABLES ----------------------------- *//
 
+    /**
+     * Symphony unique comment ID
+     */
     private String symphonyId;
 
+    /**
+     * ConnectWise unique comment ID
+     */
     private String thirdPartyId;
 
+    /**
+     * Creator of the comment
+     */
     private String creator;
 
+    /**
+     * Comment content
+     */
     private String text;
 
+    /**
+     * Date comment was last modified
+     */
     private long lastModified;
 
+    /**
+     * true if this comment is a discussion comment
+     */
     private boolean descriptionFlag;
 
+    /**
+     * true if this comment is an internal comment
+     */
     private boolean internalFlag;
 
+    /**
+     * true if this comment is marked as resolution
+     */
     private boolean resolutionFlag;
 
 

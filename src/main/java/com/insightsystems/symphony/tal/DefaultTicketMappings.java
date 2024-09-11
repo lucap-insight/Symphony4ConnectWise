@@ -3,6 +3,12 @@ package com.insightsystems.symphony.tal;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Class that contains the default mappings between ConnectWise and Symphony
+ *
+ * @author LucaP<br> Created on 01 Aug 2024
+ * @since 5.8
+ */
 public class DefaultTicketMappings {
     private static final Map<String, String> customerPriorityMappingForThirdParty = new HashMap<>();
     private static final Map<String, String> customerPriorityMappingForSymphony = new HashMap<>();
