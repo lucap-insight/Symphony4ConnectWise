@@ -1,23 +1,32 @@
 package com.insightsystems.symphony.tal;
 
-import com.avispl.symphony.api.common.error.InvalidArgumentException;
-import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
-import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
-import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import com.avispl.symphony.api.tal.error.TalRecoverableException;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpStatus;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+
+import org.springframework.http.HttpStatus;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
+import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
+import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
+import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
 /**
  * Sends and receives HTTP API requests to and from ConnectWise.
