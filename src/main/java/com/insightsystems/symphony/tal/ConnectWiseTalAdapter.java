@@ -18,6 +18,7 @@ import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
+import javax.annotation.PostConstruct;
 
 
 /**
@@ -26,12 +27,13 @@ import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
  * @author Symphony Dev Team<br> Created on 7 Dec 2018
  * @since 4.6
  */
-public class TalAdapterImpl implements TalAdapter {
+public class ConnectWiseTalAdapter implements TalAdapter {
+    public static final String ADAPTER_NAME = "ConnectWise";
 
     /**
      * Logger instance
      */
-    private static final Logger logger = LoggerFactory.getLogger(TalAdapterImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConnectWiseTalAdapter.class);
 
     /**
      * In sake of testing simplicity, one may use MockTalConfigService provided with this sample
@@ -64,13 +66,18 @@ public class TalAdapterImpl implements TalAdapter {
      */
     private UUID accountId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
+    @Override
+    public String getType() {
+        return ADAPTER_NAME;
+    }
+
     /**
      * Default no-arg constructor
      *
      * @param talConfigService Dependency injection for a {@link TalConfigService}
      * @param talProxy Dependency injection for a {@link TalProxy}
      */
-    public TalAdapterImpl(TalConfigService talConfigService, TalProxy talProxy) {
+    public ConnectWiseTalAdapter(TalConfigService talConfigService, TalProxy talProxy) {
         this.talConfigService = talConfigService;
         this.talProxy = talProxy;
     }
@@ -82,12 +89,12 @@ public class TalAdapterImpl implements TalAdapter {
      * All such operations must be performed asynchronously in background thread(s).
      */
     @Override
+    @PostConstruct
     public void init() {
         logger.info("Initializing Sample TAL adapter");
 
-        // In order to get ticket updates from Symphony adapter must subscribe to this explicitly here
-        // After subscription is done, all updates will come to this adapter instance via calls to syncTalTicket method
-        talProxy.subscribeUpdates(accountId, this);
+        restCWClient = new ConnectWiseClient(config);
+        ticketService = new TicketServiceImpl(restCWClient);
 
         try {
             // obtain adapter configuration
@@ -96,13 +103,6 @@ public class TalAdapterImpl implements TalAdapter {
             throw new RuntimeException("SampleTalAdapterImpl was unable to retrieve " +
                     "configuration from TalConfigService: " + e.getMessage(), e);
         }
-
-        // subscribe for getting adapter configuration updates
-        talConfigService.subscribeForTicketSystemConfigUpdate(accountId,
-                (ticketSystemConfig) -> setConfig(ticketSystemConfig));
-
-        restCWClient = new ConnectWiseClient(config);
-        ticketService = new TicketServiceImpl(restCWClient);
     }
 
     /**
@@ -124,9 +124,21 @@ public class TalAdapterImpl implements TalAdapter {
     @Override
     public TalTicket syncTalTicket(TalTicket talTicket) throws TalAdapterSyncException {
         try {
-            //System.out.println(talTicket);
             if (talTicket == null)
                 throw new InvalidArgumentException("talTicket cannot be null");
+
+            if (talTicket.getCustomerId() == null) {
+                throw new TalAdapterSyncException("talTicket's customer ID cannot be null");
+            }
+
+            try {
+                // obtain adapter configuration
+                setConfig(talConfigService.retrieveTicketSystemConfig(UUID.fromString(talTicket.getCustomerId())));
+                restCWClient.setConfig(config);
+            } catch (Exception e) {
+                throw new RuntimeException("ConnectWiseTalAdapter was unable to retrieve " +
+                        "configuration from TalConfigService: " + e.getMessage(), e);
+            }
 
             // Confirm that credentials have been set up
             if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID) == null ||
