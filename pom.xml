@@ -37,8 +37,8 @@
     <org.junit.jupiter.version>5.10.2</org.junit.jupiter.version>
     <org.mockito.version>5.12.0</org.mockito.version>
     <com.fasterxml.jackson.core.version>2.17.1</com.fasterxml.jackson.core.version>
-    <symphony-shared-utilities.version>2.3.0-SNAPSHOT</symphony-shared-utilities.version>
-    <tal-api.version>5.15.0-SNAPSHOT</tal-api.version>
+    <!--- Symphony Dependencies -->
+    <symphony-bom.version>6.3.0-SNAPSHOT</symphony-bom.version>
   </properties>
 
   <dependencies>
@@ -87,20 +87,39 @@
       <artifactId>jackson-databind</artifactId>
       <version>${com.fasterxml.jackson.core.version}</version>
     </dependency>
-    <!--Local dependency-->
+    <!--- Symphony Dependencies -->
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-tal</artifactId>
       <scope>system</scope>
       <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-tal-5.8.0.2301101245.jar</systemPath>
+      <systemPath>${pom.basedir}\lib\symphony-api-tal-5.15.0-20240910.065902-9.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-commons</artifactId>
       <scope>system</scope>
       <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-commons-5.8.0.2301101245.jar</systemPath>
+      <systemPath>${pom.basedir}\lib\symphony-api-commons-5.15.0-20240703.160953-2.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>javax.annotation</groupId>
+      <artifactId>javax.annotation-api</artifactId>
+      <version>1.2</version>
     </dependency>
   </dependencies>
+
+  <!--
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>com.avispl.symphony</groupId>
+        <artifactId>symphony-bom</artifactId>
+        <version>${symphony-bom.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  -->
 </project>
