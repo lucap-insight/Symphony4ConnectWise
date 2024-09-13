@@ -1,23 +1,25 @@
-package tests;
+package com.insightsystems.symphony.tal;
 
-import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
-import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import com.insightsystems.symphony.tal.ConnectWiseClient;
-import com.insightsystems.symphony.tal.ConnectWiseTicket;
-import com.insightsystems.symphony.tal.TicketServiceImpl;
-import com.insightsystems.symphony.tal.TicketSourceConfigPropertyCW;
-
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Assertions;
-import org.springframework.http.HttpStatus;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import org.springframework.http.HttpStatus;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
+import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
 public class TicketServiceImplTest {
 

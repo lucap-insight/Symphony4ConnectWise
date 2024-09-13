@@ -1,25 +1,22 @@
-package tests;
+package com.insightsystems.symphony.tal;
 
-import com.avispl.symphony.api.common.error.InvalidArgumentException;
-import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
-import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-import com.insightsystems.symphony.tal.ConnectWiseClient;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import com.insightsystems.symphony.tal.TicketSourceConfigPropertyCW;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.when;
 
 import java.net.http.HttpClient;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import com.avispl.symphony.api.common.error.InvalidArgumentException;
+import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
+import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
 /**
  * Tester class for ConnectWiseClient.

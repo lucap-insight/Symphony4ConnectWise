@@ -1,37 +1,40 @@
-package tests;
+package com.insightsystems.symphony.tal;
 
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.insightsystems.symphony.tal.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.dto.TalTicket;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
-import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
 
-class TalAdapterImplTest {
+class ConnectWiseTalAdapterTest {
 	private static TalAdapter talAdapter;
 	private static TalConfigService talConfigService;
 	private static TalProxy talRoutingService;
@@ -46,7 +49,7 @@ class TalAdapterImplTest {
 	public static void init() {
 		talRoutingService = mock();
 		talConfigService = mock();
-		talAdapter = new TalAdapterImpl(talConfigService, talRoutingService);
+		talAdapter = new ConnectWiseTalAdapter(talConfigService, talRoutingService);
 
 		config = mock();
 		ticketService = mock(TicketServiceImpl.class);
