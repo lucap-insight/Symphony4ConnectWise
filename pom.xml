@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.avispl.symphony.tal</groupId>
-  <artifactId>symphony-tal-sample</artifactId>
+  <artifactId>symphony-tal-connectwise</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <build>
     <plugins>
