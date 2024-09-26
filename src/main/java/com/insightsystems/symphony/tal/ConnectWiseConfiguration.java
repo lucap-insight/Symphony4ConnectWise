@@ -19,7 +19,7 @@ public class ConnectWiseConfiguration {
 	 * @param talRoutingService the tal routing service
 	 * @return the tal adapter
 	 */
-	@Bean(name = "talCWAdapter")
+	@Bean(name = "TAL CWAdapter")
 	@ConditionalOnMissingBean
 	public TalAdapter talCWAdapter(
 			TalConfigService talConfigService,
