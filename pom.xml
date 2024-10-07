@@ -38,7 +38,7 @@
     <org.mockito.version>5.12.0</org.mockito.version>
     <com.fasterxml.jackson.core.version>2.17.1</com.fasterxml.jackson.core.version>
     <!--- Symphony Dependencies -->
-    <symphony-bom.version>6.3.0-SNAPSHOT</symphony-bom.version>
+    <symphony-bom.version>6.3.0.2409252058</symphony-bom.version>
   </properties>
 
   <dependencies>
@@ -91,16 +91,10 @@
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-tal</artifactId>
-      <scope>system</scope>
-      <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-tal-5.15.0-20240910.065902-9.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-commons</artifactId>
-      <scope>system</scope>
-      <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-commons-5.15.0-20240703.160953-2.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>javax.annotation</groupId>
@@ -109,7 +103,6 @@
     </dependency>
   </dependencies>
 
-  <!--
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -121,5 +114,26 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  -->
+
+  <repositories>
+    <repository>
+      <id>avi-spl.releases</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-releases/</url>
+    </repository>
+    <repository>
+      <id>avi-spl.snapshots</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-snapshots/</url>
+    </repository>
+  </repositories>
+
+  <distributionManagement>
+    <repository>
+      <id>avi-spl.releases</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>avi-spl.snapshots</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 </project>
