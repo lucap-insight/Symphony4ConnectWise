@@ -11,6 +11,16 @@ import com.avispl.symphony.api.tal.TalProxy;
 @Configuration
 public class ConnectWiseConfiguration {
 
+	@Bean
+	public ConnectWiseClient connectWiseClient() {
+		return new ConnectWiseClient();
+	}
+
+	@Bean
+	public TicketServiceImpl ticketService(ConnectWiseClient connectWiseClient) {
+		return new TicketServiceImpl(connectWiseClient);
+	}
+
 	/**
 	 * CW now adapter tal adapter will be scanned by TAL microservice and used for synchronization of tickets
 	 * TAL context will provide configuration and routing services
@@ -23,7 +33,8 @@ public class ConnectWiseConfiguration {
 	@ConditionalOnMissingBean
 	public TalAdapter talCWAdapter(
 			TalConfigService talConfigService,
-			TalProxy talRoutingService) {
-		return new ConnectWiseTalAdapter(talConfigService, talRoutingService);
+			TalProxy talRoutingService,
+			TicketServiceImpl ticketService) {
+		return new ConnectWiseTalAdapter(talConfigService, talRoutingService, ticketService);
 	}
 }
