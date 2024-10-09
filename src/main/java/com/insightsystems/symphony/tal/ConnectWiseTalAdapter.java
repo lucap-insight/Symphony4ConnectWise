@@ -18,9 +18,6 @@ import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
-import javax.annotation.PostConstruct;
-
-
 /**
  * Sample TAL adapter implementation.
  *
@@ -46,11 +43,6 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     private TalProxy talProxy;
 
     /**
-     * Instance of ConnectWiseClient that handles all communication with ConnectWise
-     */
-    private ConnectWiseClient restCWClient;
-
-    /**
      * Instance of TicketServiceImpl that handles the ticket logic
      */
     private TicketServiceImpl ticketService;
@@ -70,23 +62,12 @@ public class ConnectWiseTalAdapter implements TalAdapter {
      * @param talConfigService Dependency injection for a {@link TalConfigService}
      * @param talProxy Dependency injection for a {@link TalProxy}
      */
-    public ConnectWiseTalAdapter(TalConfigService talConfigService, TalProxy talProxy) {
+    public ConnectWiseTalAdapter(TalConfigService talConfigService,
+        TalProxy talProxy,
+        TicketServiceImpl ticketService) {
         this.talConfigService = talConfigService;
         this.talProxy = talProxy;
-    }
-
-    /**
-     * Called by Symphony automatically after instance of adapter is created and talConfigService/talProxy setters
-     *
-     * Important: In this method developer must not perform any heavy synchronous initialization or I/O bound operations.
-     * All such operations must be performed asynchronously in background thread(s).
-     */
-    @Override
-    @PostConstruct
-    public void init() {
-        logger.info("Initializing Sample TAL adapter");
-        restCWClient = new ConnectWiseClient();
-        ticketService = new TicketServiceImpl(restCWClient);
+        this.ticketService = ticketService;
     }
 
     /**
