@@ -79,13 +79,13 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(null);
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(null);
 
 		// Verify output
 		Assertions.assertEquals(ticket, talAdapter.syncTalTicket(ticket));
 
 		// Ensure that it ran createTicket
-		verify(ticketService, times(1)).createTicket(any(ConnectWiseTicket.class));
+		verify(ticketService, times(1)).createTicket(any(TicketSystemConfig.class),any(ConnectWiseTicket.class));
 	}
 
 	@Test
@@ -99,13 +99,13 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
 
 		// Verify output
 		Assertions.assertEquals(ticket, talAdapter.syncTalTicket(ticket));
 
 		// Ensure that it ran createTicket
-		verify(ticketService, times(1)).updateTicket(any(ConnectWiseTicket.class), any(ConnectWiseTicket.class));
+		verify(ticketService, times(1)).updateTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class), any(ConnectWiseTicket.class));
 	}
 
 	@Test
@@ -133,7 +133,7 @@ class ConnectWiseTalAdapterTest {
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
 		// What happens when ticketService returns an error
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenThrow(notRecoverableException);
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenThrow(notRecoverableException);
 
 		assertThrows(TalNotRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
@@ -150,7 +150,7 @@ class ConnectWiseTalAdapterTest {
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
 		// What happens when ticketService returns an error
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenThrow(recoverableException);
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenThrow(recoverableException);
 
 		assertThrows(TalRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
@@ -166,9 +166,9 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(null);
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(null);
 
-		doThrow(recoverableException).when(ticketService).createTicket(any(ConnectWiseTicket.class));
+		doThrow(recoverableException).when(ticketService).createTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class));
 
 		assertThrows(TalRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
@@ -184,9 +184,9 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(null);
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(null);
 
-		doThrow(notRecoverableException).when(ticketService).createTicket(any(ConnectWiseTicket.class));
+		doThrow(notRecoverableException).when(ticketService).createTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class));
 
 		assertThrows(TalNotRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
@@ -202,10 +202,10 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
 
 		doThrow(recoverableException).when(ticketService)
-				.updateTicket(any(ConnectWiseTicket.class), any(ConnectWiseTicket.class));
+				.updateTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class), any(ConnectWiseTicket.class));
 
 		assertThrows(TalRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
@@ -221,10 +221,10 @@ class ConnectWiseTalAdapterTest {
 				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId"
 		);
 		when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
-		when(ticketService.getCWTicket(any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
+		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
 
 		doThrow(notRecoverableException).when(ticketService)
-				.updateTicket(any(ConnectWiseTicket.class),any(ConnectWiseTicket.class));
+				.updateTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class),any(ConnectWiseTicket.class));
 
 		assertThrows(TalNotRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
 	}
