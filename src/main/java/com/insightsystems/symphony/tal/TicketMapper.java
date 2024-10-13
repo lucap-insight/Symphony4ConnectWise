@@ -211,8 +211,9 @@ public class TicketMapper {
         if (userId == null)
             return null;
 
-        if (config == null || config.getUserMappingForThirdParty() == null)
-            throw new InvalidArgumentException("User mapping for third party cannot be null");
+        if (config == null || config.getUserMappingForThirdParty() == null) {
+            return userId;
+        }
 
         UserIdMapping userIdMapping = config.getUserMappingForThirdParty().get(userId);
 
