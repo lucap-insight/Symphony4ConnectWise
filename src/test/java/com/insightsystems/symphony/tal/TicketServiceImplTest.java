@@ -35,7 +35,6 @@ public class TicketServiceImplTest {
         // setup mock CW Client
         restCWClient = mock(ConnectWiseClient.class);
         config = mock(TicketSystemConfig.class);
-        when(restCWClient.getConfig()).thenReturn(config);
 
         Map<String, String> mapOfConfigs = Map.of(
                 TicketSourceConfigPropertyCW.CLIENT_ID, "mockClientId",
@@ -57,7 +56,6 @@ public class TicketServiceImplTest {
     public void resetMocks() {
         // Reset the behavior of classB after each test
         reset(restCWClient);
-        when(restCWClient.getConfig()).thenReturn(config);
     }
 
 
@@ -71,9 +69,9 @@ public class TicketServiceImplTest {
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
         // Set up mock ticket returned by restCWClient
         ConnectWiseTicket expectedCWTicketReturn = mock(ConnectWiseTicket.class);
-        when(restCWClient.get("url")).thenReturn(expectedCWTicketReturn);
+        when(restCWClient.get(config,"url")).thenReturn(expectedCWTicketReturn);
 
-        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(CWTicket);
+        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
 
         Assertions.assertEquals(expectedCWTicketReturn, refreshedCWTicket);
         Assertions.assertEquals("true", extraParams.get("synced"));
@@ -89,9 +87,9 @@ public class TicketServiceImplTest {
         Map<String, String> extraParams = new HashMap<>();
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
         // Set up mock ticket returned by restCWClient
-        when(restCWClient.get("url")).thenReturn(null);
+        when(restCWClient.get(config,"url")).thenReturn(null);
 
-        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(CWTicket);
+        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
 
         Assertions.assertNull(refreshedCWTicket);
         Assertions.assertEquals("true", extraParams.get("connectionFailed"));
@@ -106,9 +104,9 @@ public class TicketServiceImplTest {
         Map<String, String> extraParams = new HashMap<>();
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
         // Set up mock ticket returned by restCWClient
-        when(restCWClient.get("url")).thenThrow(new TalAdapterSyncException(""));
+        when(restCWClient.get(config,"url")).thenThrow(new TalAdapterSyncException(""));
 
-        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(CWTicket);
+        ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
 
         Assertions.assertNull(refreshedCWTicket);
         Assertions.assertEquals("true", extraParams.get("connectionFailed"));
@@ -123,9 +121,9 @@ public class TicketServiceImplTest {
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
 
         // Set up mock ticket returned by restCWClient
-        when(restCWClient.get("url")).thenReturn(null);
+        when(restCWClient.get(config,"url")).thenReturn(null);
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> ticketService.getCWTicket(CWTicket));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> ticketService.getCWTicket(config, CWTicket));
     }
 
     @Test
@@ -137,7 +135,7 @@ public class TicketServiceImplTest {
         ));
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
 
-        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(CWTicket));
+        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(config, CWTicket));
         // Should also set these extra params as so:
         Assertions.assertEquals("true", extraParams.get("synced"));
         Assertions.assertEquals("false", extraParams.get("connectionFailed"));
@@ -154,7 +152,7 @@ public class TicketServiceImplTest {
         when(CWTicket.getSummary()).thenCallRealMethod();
         when(CWTicket.setSummary(any(String.class))).thenCallRealMethod();
 
-        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(CWTicket));
+        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(config, CWTicket));
         Assertions.assertFalse(CWTicket.getSummary().isEmpty());
         // Should also set these extra params as so:
         Assertions.assertEquals("true", extraParams.get("synced"));
@@ -171,7 +169,7 @@ public class TicketServiceImplTest {
         ));
         when(CWTicket.getExtraParams()).thenReturn(extraParams);
 
-        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(CWTicket));
+        Assertions.assertDoesNotThrow(() -> ticketService.createTicket(config, CWTicket));
         verify(CWTicket, times(1)).setSummary(any(String.class));
         // Should also set these extra params as so:
         Assertions.assertEquals("true", extraParams.get("synced"));
@@ -182,9 +180,9 @@ public class TicketServiceImplTest {
     void createTicket_whenCWClientPostThrowsException_shouldThrowSameException() throws TalAdapterSyncException {
         ConnectWiseTicket CWTicket = mock(ConnectWiseTicket.class);
 
-        doThrow(notRecoverableException).when(restCWClient).post(any(ConnectWiseTicket.class));
+        doThrow(notRecoverableException).when(restCWClient).post(any(TicketSystemConfig.class), any(ConnectWiseTicket.class));
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> ticketService.createTicket(CWTicket));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> ticketService.createTicket(config, CWTicket));
     }
 
     @Test
@@ -209,9 +207,9 @@ public class TicketServiceImplTest {
         CWTicket.setPriority("Priority 2");
         CWTicket.setAssignedTo("craigs");
 
-        Assertions.assertDoesNotThrow(() -> ticketService.updateTicket(symphonyTicket, CWTicket));
+        Assertions.assertDoesNotThrow(() -> ticketService.updateTicket(config, symphonyTicket, CWTicket));
         // Ensure it made a patch call
-        verify(restCWClient, times(1)).patch(any(String.class), any(String.class));
+        verify(restCWClient, times(1)).patch(any(TicketSystemConfig.class), any(String.class), any(String.class));
         Assertions.assertEquals(CWTicket.getSummary(), symphonyTicket.getSummary());
         Assertions.assertEquals("Symphony summary", symphonyTicket.getSummary());
         Assertions.assertEquals(CWTicket.getStatus(), symphonyTicket.getStatus());
@@ -231,11 +229,11 @@ public class TicketServiceImplTest {
         when(symphonyTicket.getSummary()).thenReturn("symphony summary");
         when(symphonyTicket.getUrl()).thenReturn("url");
 
-        doThrow(notRecoverableException).when(restCWClient).patch(any(String.class), any(String.class));
+        doThrow(notRecoverableException).when(restCWClient).patch(any(TicketSystemConfig.class), any(String.class), any(String.class));
 
         Assertions.assertThrows(
                 TalAdapterSyncException.class,
-                () -> ticketService.updateTicket(symphonyTicket, CWTicket)
+                () -> ticketService.updateTicket(config, symphonyTicket, CWTicket)
         );
     }
 

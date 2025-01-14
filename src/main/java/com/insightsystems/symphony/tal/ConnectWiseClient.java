@@ -44,12 +44,6 @@ public class ConnectWiseClient {
     private static final Logger logger = LoggerFactory.getLogger(ConnectWiseClient.class);
 
     /**
-     * Instance of TicketSystemConfig that contains mappings and destination
-     * ticketing system configuration
-     */
-    private TicketSystemConfig config;
-
-    /**
      * List of recoverable HTTP statuses
      */
     private List<Integer> RecoverableHttpStatus;
@@ -85,9 +79,6 @@ public class ConnectWiseClient {
             logger.error("ConnectWiseClient: attempted to create instance with null config or null TicketSourceConfig");
             throw new InvalidArgumentException("ConnectWiseClient cannot be instantiated with null config");
         }
-
-        this.config = config;
-
         RecoverableHttpStatus = new ArrayList<Integer>();
         RecoverableHttpStatus.add(408);
         RecoverableHttpStatus.add(429);
@@ -105,7 +96,7 @@ public class ConnectWiseClient {
      * @return JSON object with the HTTP request response
      * @throws TalAdapterSyncException if request fails
      */
-    private JSONObject ConnectWiseAPICall(String url, String method, String requestBody) throws TalAdapterSyncException {
+    private JSONObject ConnectWiseAPICall(TicketSystemConfig config, String url, String method, String requestBody) throws TalAdapterSyncException {
         // Check for nulls
         if (config == null || config.getTicketSourceConfig() == null) {
             // Decided to use a Sync error because the config is not an argument (so not using an InvalidArgumentException)
@@ -113,7 +104,7 @@ public class ConnectWiseClient {
         }
         // Optional: Formalize input error checking on ConnectWiseAPICall
         String clientID = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID);
-        String authorization = getBasicAuthenticationHeader();
+        String authorization = getBasicAuthenticationHeader(config);
 
         if (clientID == null || authorization == null) {
             logger.error("ConnectWiseAPICall: Unable to retrieve client ID and/or authorization from configuration");
@@ -218,13 +209,13 @@ public class ConnectWiseClient {
      * @return most updated version of Ticket retrieved from ConnectWise. Returns null if ticket is not on ConnectWise.
      * @throws TalAdapterSyncException if refresh fails
      */
-    public ConnectWiseTicket get(String url) throws TalAdapterSyncException {
+    public ConnectWiseTicket get(TicketSystemConfig config, String url) throws TalAdapterSyncException {
         // Attempt connection
         JSONObject response = null;
         ConnectWiseTicket refreshedCWTicket = null;
 
         logger.info("get: retrieving ticket");
-        response = ConnectWiseAPICall(url, "GET", null);
+        response = ConnectWiseAPICall(config, url, "GET", null);
 
         // If connection successful:
         if (response != null) {
@@ -243,7 +234,7 @@ public class ConnectWiseClient {
             }
             if (!commentsFailed) {
                 try {
-                    JSONArray jsonArray = ConnectWiseAPICall(
+                    JSONArray jsonArray = ConnectWiseAPICall(config,
                             url + config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS),
                             "GET",
                             null)
@@ -278,8 +269,8 @@ public class ConnectWiseClient {
      * @param requestBody PATCH call request body
      * @throws TalAdapterSyncException if request fails
      */
-    public void patch(String url, String requestBody) throws TalAdapterSyncException {
-        ConnectWiseAPICall(url, "PATCH", requestBody);
+    public void patch(TicketSystemConfig config, String url, String requestBody) throws TalAdapterSyncException {
+        ConnectWiseAPICall(config, url, "PATCH", requestBody);
     }
 
     /**
@@ -288,7 +279,7 @@ public class ConnectWiseClient {
      * @param CWTicket ticket to post to ConnectWise
      * @throws TalAdapterSyncException if posting ticket failed
      */
-    public void post(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public void post(TicketSystemConfig config, ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         if (config == null || config.getTicketSourceConfig() == null) {
             throw new TalAdapterSyncException("ConnectWiseClient config or ticketSourceConfig cannot be null");
         }
@@ -328,7 +319,7 @@ public class ConnectWiseClient {
         }
 
         // Try to get priority ID from name
-        String priorityId = getPriorityID(CWTicket.getPriority());
+        String priorityId = getPriorityID(config, CWTicket.getPriority());
 
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
@@ -363,7 +354,7 @@ public class ConnectWiseClient {
                 //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
                 "}";
 
-        JSONObject response = ConnectWiseAPICall(url, "POST", requestBody);
+        JSONObject response = ConnectWiseAPICall(config, url, "POST", requestBody);
         ConnectWiseTicket newTicket = new ConnectWiseTicket(response);
         newTicket.setUrl(url + "/" + newTicket.getId());
 
@@ -376,10 +367,10 @@ public class ConnectWiseClient {
         newTicket.setSymphonyLink(CWTicket.getSymphonyLink());
 
         // POST description
-        postDescription(CWTicket);
+        postDescription(config, CWTicket);
 
         // POST comments
-        patchComments(CWTicket, newTicket);
+        patchComments(config, CWTicket, newTicket);
     }
 
 
@@ -393,7 +384,7 @@ public class ConnectWiseClient {
      * @return CW ID for priority or null if ID is not found
      * @throws TalAdapterSyncException if an error occurs with the call
      */
-    public String getPriorityID(String priorityName) throws TalAdapterSyncException {
+    public String getPriorityID(TicketSystemConfig config, String priorityName) throws TalAdapterSyncException {
         String retVal = null;
 
         // null checks
@@ -427,7 +418,7 @@ public class ConnectWiseClient {
                 "?conditions=name%20=%20%22"+ urlSafePriorityName + "%22";
 
         // Make the request
-        JSONArray priority = ConnectWiseAPICall(url, "GET", null)
+        JSONArray priority = ConnectWiseAPICall(config, url, "GET", null)
                 .getJSONArray("JSONArray"); // Get JSONArray from response
         if (priority != null) {
             if (!priority.isEmpty()) {
@@ -452,7 +443,7 @@ public class ConnectWiseClient {
      * @param newTicket ticket to be updated
      * @throws TalAdapterSyncException if any request to POST new comments fail
      */
-    public void patchComments(ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) throws TalAdapterSyncException {
+    public void patchComments(TicketSystemConfig config, ConnectWiseTicket CWTicket, ConnectWiseTicket newTicket) throws TalAdapterSyncException {
         // null check
         if (CWTicket == null || newTicket == null)
             throw new InvalidArgumentException("CWTicket, newTicket and comments cannot be null");
@@ -502,7 +493,7 @@ public class ConnectWiseClient {
                                     "        \"path\": \"text\",\n" +
                                     "        \"value\": \"" + SymphonyComment.getText() + "\"\n" +
                                     "    }]";
-                            ConnectWiseAPICall(notesURL + "/" + CWComment.getThirdPartyId(), "PATCH", body);
+                            ConnectWiseAPICall(config,notesURL + "/" + CWComment.getThirdPartyId(), "PATCH", body);
                         } catch (TalAdapterSyncException e) {
                             logger.error("patchComments: Attempt failed. HTTP error {} - {}",
                                     e.getHttpStatus() != null ? e.getHttpStatus() : "not specified",
@@ -542,7 +533,7 @@ public class ConnectWiseClient {
                         "}";
 
                 try {
-                    JSONObject jsonObject = ConnectWiseAPICall(notesURL, "POST", requestBody);
+                    JSONObject jsonObject = ConnectWiseAPICall(config, notesURL, "POST", requestBody);
                     // Add ThirdParty ticket ID to ticket
                     logger.info("updateComments: POST {}/{} Successful. Updating Comment ID on Symphony",
                             commentNumber,
@@ -576,7 +567,7 @@ public class ConnectWiseClient {
      * @param CWTicket Ticket with description to be added to CW
      * @throws TalAdapterSyncException if API request to post description fails
      */
-    public void postDescription(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public void postDescription(TicketSystemConfig config, ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         if (CWTicket == null)
             throw new InvalidArgumentException("CWTicket cannot be null");
         if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
@@ -603,7 +594,7 @@ public class ConnectWiseClient {
             logger.info("Attempting to POST ticket description");
             String url = CWTicket.getUrl() +
                     config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS);
-            JSONObject newDescription = ConnectWiseAPICall(url, "POST", requestBody);
+            JSONObject newDescription = ConnectWiseAPICall(config, url, "POST", requestBody);
             CWTicket.AddJSONDescription(newDescription);
         } catch (TalAdapterSyncException e) {
             logger.error("postDescription: Error posting description comment. Code {} - {}",
@@ -619,7 +610,7 @@ public class ConnectWiseClient {
      * @return Authentication header
      * @throws TalAdapterSyncException if config is not fully configured
      */
-    private String getBasicAuthenticationHeader() throws TalAdapterSyncException {
+    private String getBasicAuthenticationHeader(TicketSystemConfig config) throws TalAdapterSyncException {
         if (config == null ||
                 config.getTicketSourceConfig() == null ||
                 config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.COMPANY_ID) == null ||
@@ -645,11 +636,4 @@ public class ConnectWiseClient {
         RecoverableHttpStatus = recoverableHttpStatus;
     }
 
-    public TicketSystemConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(TicketSystemConfig config) {
-        this.config = config;
-    }
 }

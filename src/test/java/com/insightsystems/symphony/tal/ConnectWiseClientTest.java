@@ -1,5 +1,6 @@
 package com.insightsystems.symphony.tal;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -58,14 +59,14 @@ public class ConnectWiseClientTest {
         );
         when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
 
-        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.get(null));
+        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.get(config,null));
     }
 
     @Test
     void get_whenConfigIsMissing_shouldThrowTalAdapterSyncException() {
         when(config.getTicketSourceConfig()).thenReturn(null);
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.get("url"));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.get(config,"url"));
     }
 
     @Test
@@ -78,14 +79,14 @@ public class ConnectWiseClientTest {
         );
         when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
 
-        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.patch(null, null));
+        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.patch(config,null, null));
     }
 
     @Test
     void patch_whenConfigIsMissing_shouldThrowTalAdapterSyncException() {
         when(config.getTicketSourceConfig()).thenReturn(null);
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.patch("url", "body"));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.patch(config,"url", "body"));
     }
 
     @Test
@@ -103,14 +104,14 @@ public class ConnectWiseClientTest {
         );
         when(config.getTicketSourceConfig()).thenReturn(mapOfConfigs);
 
-        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.post(null));
+        Assertions.assertThrows(InvalidArgumentException.class, () -> restCWClient.post(config,null));
     }
 
     @Test
     void post_whenConfigIsMissing_shouldThrowTalAdapterSyncException() {
         when(config.getTicketSourceConfig()).thenReturn(null);
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.post(mock()));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.post(any(TicketSystemConfig.class),mock()));
     }
 
 }

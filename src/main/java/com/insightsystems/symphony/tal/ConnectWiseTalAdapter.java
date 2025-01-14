@@ -47,17 +47,6 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     private final TalProxy talProxy;
 
     /**
-     * Instance of TicketSystemConfig that contains mappings and destination
-     * ticketing system configuration
-     */
-    private TicketSystemConfig config;
-
-    /**
-     * Instance of ConnectWiseClient that handles all communication with ConnectWise
-     */
-    private ConnectWiseClient restCWClient;
-
-    /**
      * Instance of TicketServiceImpl that handles the ticket logic
      */
     private TicketServiceImpl ticketService;
@@ -65,7 +54,6 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
      */
-    private final UUID accountId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     @Override
     public String getType() {
@@ -78,32 +66,12 @@ public class ConnectWiseTalAdapter implements TalAdapter {
      * @param talConfigService Dependency injection for a {@link TalConfigService}
      * @param talProxy Dependency injection for a {@link TalProxy}
      */
-    public ConnectWiseTalAdapter(TalConfigService talConfigService, TalProxy talProxy) {
+    public ConnectWiseTalAdapter(TalConfigService talConfigService,
+        TalProxy talProxy,
+        TicketServiceImpl ticketService) {
         this.talConfigService = talConfigService;
         this.talProxy = talProxy;
-    }
-
-    /**
-     * Called by Symphony automatically after instance of adapter is created and talConfigService/talProxy setters
-     *
-     * Important: In this method developer must not perform any heavy synchronous initialization or I/O bound operations.
-     * All such operations must be performed asynchronously in background thread(s).
-     */
-    @Override
-    @PostConstruct
-    public void init() {
-        logger.info("Initializing Sample TAL adapter");
-
-        restCWClient = new ConnectWiseClient(config);
-        ticketService = new TicketServiceImpl(restCWClient);
-
-        try {
-            // obtain adapter configuration
-            setConfig(talConfigService.retrieveTicketSystemConfig(accountId));
-        } catch (Exception e) {
-            throw new RuntimeException("SampleTalAdapterImpl was unable to retrieve " +
-                    "configuration from TalConfigService: " + e.getMessage(), e);
-        }
+        this.ticketService = ticketService;
     }
 
     /**
@@ -131,15 +99,7 @@ public class ConnectWiseTalAdapter implements TalAdapter {
             if (talTicket.getCustomerId() == null) {
                 throw new TalAdapterSyncException("talTicket's customer ID cannot be null");
             }
-
-            try {
-                // obtain adapter configuration
-                setConfig(talConfigService.retrieveTicketSystemConfig(UUID.fromString(talTicket.getCustomerId())));
-                restCWClient.setConfig(config);
-            } catch (Exception e) {
-                throw new RuntimeException("ConnectWiseTalAdapter was unable to retrieve " +
-                        "configuration from TalConfigService: " + e.getMessage(), e);
-            }
+            TicketSystemConfig config = talConfigService.retrieveTicketSystemConfig(UUID.fromString(talTicket.getCustomerId()));
 
             // Confirm that credentials have been set up
             if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID) == null ||
@@ -188,17 +148,17 @@ public class ConnectWiseTalAdapter implements TalAdapter {
             }
 
             // 1. make call to ConnectWise and get live ticket data
-            ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(CWTicket);
+            ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
                 // Update it with the newest information
-                ticketService.updateTicket(CWTicket, refreshedCWTicket);
+                ticketService.updateTicket(config, CWTicket, refreshedCWTicket);
                 // Map ConnectWise ticket back to Symphony
                 TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             } else {
                 // Otherwise, create new ticket
-                ticketService.createTicket(CWTicket);
+                ticketService.createTicket(config, CWTicket);
                 logger.info("syncTalTicket: remapping ticket to Symphony");
                 TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             }
@@ -217,7 +177,7 @@ public class ConnectWiseTalAdapter implements TalAdapter {
                     - HTTP Status 502 - Bad gateway
                     - HTTP Status 503 - Service unavailable
              */
-            List<Integer> RecoverableHttpStatus = new ArrayList<Integer>();
+            List<Integer> RecoverableHttpStatus = new ArrayList<>();
             RecoverableHttpStatus.add(408);
             RecoverableHttpStatus.add(429);
             RecoverableHttpStatus.add(502);
@@ -236,21 +196,5 @@ public class ConnectWiseTalAdapter implements TalAdapter {
 
             throw new TalNotRecoverableException(e,talTicket);
         }
-    }
-
-    public TalConfigService getTalConfigService() {
-        return this.talConfigService;
-    }
-
-    public TalProxy getTalProxy() {
-        return this.talProxy;
-    }
-
-    public TicketSystemConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(TicketSystemConfig config) {
-        this.config = config;
     }
 }

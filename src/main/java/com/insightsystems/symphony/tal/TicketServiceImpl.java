@@ -42,7 +42,7 @@ public class TicketServiceImpl {
      * @return a new instance of ConnectWiseTicket with the latest information. Null if the connection fails
      * @throws TalAdapterSyncException if connection fails and has failed before for the same ticket
      */
-    public ConnectWiseTicket getCWTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public ConnectWiseTicket getCWTicket(TicketSystemConfig config,ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // Make sure ticket has extra params map
         if (CWTicket.getExtraParams() == null) {
             CWTicket.setExtraParams(new HashMap<>());
@@ -55,7 +55,7 @@ public class TicketServiceImpl {
         // Attempt URL
         if (CWTicket.getUrl() != null) {
             try {
-                refreshedCWTicket = CWClient.get(CWTicket.getUrl());
+                refreshedCWTicket = CWClient.get(config, CWTicket.getUrl());
             } catch (TalAdapterSyncException e) {
                 connectionFailedError = e;
             }
@@ -66,8 +66,8 @@ public class TicketServiceImpl {
             // Validation to make sure neither ID, URL, nor API Path is null
             String url = "";
             try {
-                url = createURL(CWTicket);
-                refreshedCWTicket = CWClient.get(url);
+                url = createURL(config, CWTicket);
+                refreshedCWTicket = CWClient.get(config, url);
                 CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
                 connectionFailedError = e;
@@ -123,17 +123,17 @@ public class TicketServiceImpl {
      * @param CWTicket ticket to post
      * @throws TalAdapterSyncException if post call fails
      */
-    public void createTicket(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    public void createTicket(TicketSystemConfig config,ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // Make sure ticket has extra params
         if (CWTicket.getExtraParams() == null)
             CWTicket.setExtraParams(new HashMap<>());
 
 
         // Adding initial priority comment
-        if (CWClient.getConfig() != null && CWClient.getConfig().getPriorityMappingForSymphony() != null) { // null check
+        if (config!= null && config.getPriorityMappingForSymphony() != null) { // null check
             ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
                     String.format("Initial ticket priority: %s",
-                            CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority())), null);
+                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority())), null);
             CWTicket.addComment(initialPriorityComment);
         }
 
@@ -158,7 +158,7 @@ public class TicketServiceImpl {
 
         // Create new ticket on ConnectWise
         logger.info("createTicket: Attempting to POST ticket on ConnectWise");
-        CWClient.post(CWTicket);
+        CWClient.post(config, CWTicket);
 
         if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
             // Make sure ticket knows it has been synced
@@ -176,7 +176,7 @@ public class TicketServiceImpl {
      * @param refreshedTicket Ticket to be updated
      * @throws TalAdapterSyncException if patch call(s) fail
      */
-    public void updateTicket(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
+    public void updateTicket(TicketSystemConfig config, ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
         // HTTP PATCH
         String patchRequest = "";
         // summary
@@ -184,7 +184,7 @@ public class TicketServiceImpl {
         // status
         patchRequest += UpdateStatus(CWTicket, refreshedTicket, patchRequest);
         // priority
-        patchRequest += UpdatePriority(CWTicket, refreshedTicket, patchRequest);
+        patchRequest += UpdatePriority(config, CWTicket, refreshedTicket, patchRequest);
         // assignee
         patchRequest += UpdateAssignee(CWTicket, refreshedTicket, patchRequest);
         // requester
@@ -194,7 +194,7 @@ public class TicketServiceImpl {
             patchRequest = "[" + patchRequest + "]"; // Final request formatting
             logger.info("updateTicket: Making PATCH request");
             try {
-                CWClient.patch(CWTicket.getUrl(), patchRequest);
+                CWClient.patch(config, CWTicket.getUrl(), patchRequest);
             } catch (Exception e) {
                 logger.error("updateTicket: PATCH request failed");
                 throw e;
@@ -203,9 +203,9 @@ public class TicketServiceImpl {
             logger.info("updateTicket: No updates needed");
         }
 
-        patchDescription(CWTicket, refreshedTicket);
+        patchDescription(config, CWTicket, refreshedTicket);
 
-        CWClient.patchComments(CWTicket, refreshedTicket);
+        CWClient.patchComments(config, CWTicket, refreshedTicket);
     }
 
 
@@ -300,21 +300,21 @@ public class TicketServiceImpl {
      * @param patchRequest
      * @return PATCH string
      */
-    private String UpdatePriority(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+    private String UpdatePriority(TicketSystemConfig config, ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
         String returnVal = "";
 
         if (!Objects.equals( refreshedTicket.getPriority(), CWTicket.getPriority() )) {
             String op = (refreshedTicket.getPriority() == null ? "add" : "replace");
-            String CWPriority = CWClient.getConfig().getPriorityMappingForSymphony().get(refreshedTicket.getPriority());
+            String CWPriority = config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority());
 
             if ( refreshedTicket.setPriority(CWTicket.getPriority()) ) {
                 logger.info("updatePriority: updating CW priority from {} to {}",
                         CWPriority,
-                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
+                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
                 // Get priority ID based on priority name
                 String priorityID = null;
                 try {
-                    priorityID = CWClient.getPriorityID(CWTicket.getPriority()); // Try to find matching priority in CW
+                    priorityID = CWClient.getPriorityID(config, CWTicket.getPriority()); // Try to find matching priority in CW
                 } catch (TalAdapterSyncException e) {
                     logger.error("UpdatePriority: Unable to find priority ID in ConnectWise with matching name.");
                 }
@@ -327,7 +327,7 @@ public class TicketServiceImpl {
 
                     // Add comment for change in priority
                     String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
-                            CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority());
+                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
                     ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
                             null,
                             false, true, false);
@@ -337,8 +337,8 @@ public class TicketServiceImpl {
                 }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
-                        CWClient.getConfig().getPriorityMappingForSymphony().get(CWTicket.getPriority()),
-                        CWClient.getConfig().getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
+                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()),
+                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
                 CWTicket.setPriority( refreshedTicket.getPriority() );
             }
         }
@@ -392,11 +392,10 @@ public class TicketServiceImpl {
      * @param CWTicket Symphony ticket with the latest information
      * @param refreshedTicket Ticket retrieved from CW
      */
-    private void patchDescription(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
+    private void patchDescription(TicketSystemConfig config, ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket) throws TalAdapterSyncException {
         // null-check
-        if (CWClient.getConfig()
-                .getTicketSourceConfig()
-                .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS) == null) {
+        String commentUrlPattern = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS);
+        if (commentUrlPattern == null) {
             logger.error("patchDescription: URL Pattern to get comments property configuration cannot be null");
             throw new InvalidArgumentException("URL Pattern to get comments property configuration cannot be null");
         }
@@ -404,7 +403,7 @@ public class TicketServiceImpl {
         if (refreshedTicket.getDescription() == null) {
             // If CW does not have a description comment, create one
             logger.info("updateDescription: ConnectWise description comment not found. Creating new comment");
-            CWClient.postDescription(CWTicket);
+            CWClient.postDescription(config, CWTicket);
         }
         else {
             // Compare texts
@@ -418,12 +417,9 @@ public class TicketServiceImpl {
                         "    }]";
                 logger.info("updateDescription: Attempting PATCH request");
                 try {
-                    CWClient.patch(CWTicket.getUrl() +
-                                    CWClient.getConfig()
-                                            .getTicketSourceConfig()
-                                            .get(TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS)
-                                    + "/" +
-                                    refreshedTicket.getDescription().getThirdPartyId(),
+                    CWClient.patch(config, CWTicket.getUrl() + commentUrlPattern
+                                           + "/" +
+                                           refreshedTicket.getDescription().getThirdPartyId(),
                             body);
                 } catch (TalAdapterSyncException e) {
                     logger.error("patchDescription: CW API Call error - unable to sync description. Http error code: {}",
@@ -442,22 +438,22 @@ public class TicketServiceImpl {
      * @throws TalAdapterSyncException if any part of the url is null
      * @return the formatted URL based on inputs
      */
-    private String createURL(ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
+    private String createURL(TicketSystemConfig config, ConnectWiseTicket CWTicket) throws TalAdapterSyncException {
         // null checks
         if (CWTicket == null) {
             logger.error("createURL: CWTicket cannot be null");
             throw new InvalidArgumentException("CWTicket cannot be null");
         }
-        if (CWClient.getConfig() == null) {
+        if (config == null) {
             logger.error("createURL: config cannot be null");
             throw new TalAdapterSyncException("Config cannot be null");
         }
-        if (CWClient.getConfig().getTicketSourceConfig() == null) {
+        if (config.getTicketSourceConfig() == null) {
             logger.error("createURL: ticket source config cannot be null");
             throw new TalAdapterSyncException("Ticket source config cannot be null");
         }
 
-        Map<String, String> ticketSourceConfig = CWClient.getConfig().getTicketSourceConfig();
+        Map<String, String> ticketSourceConfig = config.getTicketSourceConfig();
 
         if (ticketSourceConfig.get(TicketSourceConfigProperty.URL) == null ||
                 ticketSourceConfig.get(TicketSourceConfigProperty.API_PATH) == null ||
