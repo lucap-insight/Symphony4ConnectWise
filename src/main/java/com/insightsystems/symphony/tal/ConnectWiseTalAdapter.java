@@ -11,16 +11,12 @@ import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
-
-import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
-
-
 
 /**
  * Sample TAL adapter implementation.
