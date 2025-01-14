@@ -11,6 +11,8 @@ import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.dto.*;
 import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
 import com.avispl.symphony.api.tal.error.TalRecoverableException;
+
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +20,6 @@ import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 
-import javax.annotation.PostConstruct;
 
 
 /**
@@ -38,12 +39,12 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     /**
      * In sake of testing simplicity, one may use MockTalConfigService provided with this sample
      */
-    private TalConfigService talConfigService;
+    private final TalConfigService talConfigService;
 
     /**
      * In sake of testing simplicity, one may use MockTalProxy provided with this sample
      */
-    private TalProxy talProxy;
+    private final TalProxy talProxy;
 
     /**
      * Instance of TicketSystemConfig that contains mappings and destination
@@ -64,7 +65,7 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
      */
-    private UUID accountId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+    private final UUID accountId = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     @Override
     public String getType() {

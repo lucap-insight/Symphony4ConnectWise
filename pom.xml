@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.avispl.symphony.tal</groupId>
@@ -31,14 +31,14 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <java.version>1.8</java.version>
     <org.json.version>20240303</org.json.version>
-    <org.slf4j.version>1.7.36</org.slf4j.version>
-    <org.springframework.version>6.1.6</org.springframework.version>
-    <org.springframework.boot.version>3.3.3</org.springframework.boot.version>
+    <logback-classic.version>1.5.13</logback-classic.version>
+    <org.springframework.boot.version>3.4.1</org.springframework.boot.version>
+    <spring-context.verison>6.2.1</spring-context.verison>
     <org.junit.jupiter.version>5.10.2</org.junit.jupiter.version>
     <org.mockito.version>5.12.0</org.mockito.version>
     <com.fasterxml.jackson.core.version>2.17.1</com.fasterxml.jackson.core.version>
     <!--- Symphony Dependencies -->
-    <symphony-bom.version>6.3.0-SNAPSHOT</symphony-bom.version>
+    <symphony-bom.version>6.4.0.2410211539</symphony-bom.version>
   </properties>
 
   <dependencies>
@@ -48,24 +48,24 @@
       <version>${org.json.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-      <version>${org.slf4j.version}</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+      <version>${org.springframework.boot.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-web</artifactId>
-      <version>${org.springframework.version}</version>
+      <artifactId>logback-classic</artifactId>
+      <groupId>ch.qos.logback</groupId>
+      <version>${logback-classic.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-test</artifactId>
-      <version>${org.springframework.version}</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <version>${org.springframework.boot.version}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
-      <version>${org.springframework.version}</version>
+      <version>${spring-context.verison}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -91,25 +91,13 @@
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-tal</artifactId>
-      <scope>system</scope>
-      <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-tal-5.15.0-20240910.065902-9.jar</systemPath>
     </dependency>
     <dependency>
       <groupId>com.avispl.symphony.api</groupId>
       <artifactId>symphony-api-commons</artifactId>
-      <scope>system</scope>
-      <version>${tal-api.version}</version>
-      <systemPath>${pom.basedir}\lib\symphony-api-commons-5.15.0-20240703.160953-2.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>javax.annotation</groupId>
-      <artifactId>javax.annotation-api</artifactId>
-      <version>1.2</version>
     </dependency>
   </dependencies>
 
-  <!--
   <dependencyManagement>
     <dependencies>
       <dependency>
@@ -121,5 +109,25 @@
       </dependency>
     </dependencies>
   </dependencyManagement>
-  -->
+
+  <distributionManagement>
+    <repository>
+      <id>avi-spl.releases</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>avi-spl.snapshots</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+  <repositories>
+    <repository>
+      <id>avi-spl.releases</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-releases/</url>
+    </repository>
+    <repository>
+      <id>avi-spl.snapshots</id>
+      <url>https://nexus.vnocsymphony.com:8443/repository/maven-snapshots/</url>
+    </repository>
+  </repositories>
 </project>
