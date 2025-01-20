@@ -30,7 +30,6 @@ public class ConnectWiseConfiguration {
 	 * @return the tal adapter
 	 */
 	@Bean(name = "TAL CWAdapter")
-	@ConditionalOnMissingBean
 	public TalAdapter talCWAdapter(
 			TalConfigService talConfigService,
 			TalProxy talRoutingService,
