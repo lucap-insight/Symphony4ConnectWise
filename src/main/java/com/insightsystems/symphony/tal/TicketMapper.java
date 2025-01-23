@@ -391,8 +391,6 @@ public class TicketMapper {
             }
 
             // Remapping to Symphony might not work, so this needs to remain here.
-            // Could also be the case that the CW ticket HAS a user, but it is not the same as Symphony.
-            // Since Symphony takes priority, if the names do not match, symphony's creator will be the one used.
             if (mappedCreator == null) {
                 // If CWComment does not have a creator, find the matching Symphony comment
                 if (CWComment.getExtraParams().containsKey("creator")) {
@@ -409,6 +407,26 @@ public class TicketMapper {
 //                    }
 //                }
             }
+            else {
+                // Could also be the case that the CW ticket HAS a user, but it is not the same as Symphony.
+                // Since Symphony takes priority, if the names do not match, symphony's creator will be the one used.
+                // First I need to get the matching comment from symphony
+                String symphonyCreator = null;
+                for (Comment SymphonyComment : ticket.getComments()) {
+                    if ((SymphonyComment.getSymphonyId() != null &&
+                            Objects.equals(SymphonyComment.getSymphonyId(), CWComment.getSymphonyId())) ||
+                            (SymphonyComment.getThirdPartyId() != null &&
+                            Objects.equals(SymphonyComment.getThirdPartyId(), CWComment.getThirdPartyId()))) {
+                        // Set creator to matching Symphony creator
+                        symphonyCreator = SymphonyComment.getCreator();
+                        break;
+                    }
+                }
+                if (symphonyCreator != null && !mappedCreator.equals(symphonyCreator)) {
+                    mappedCreator = symphonyCreator;
+                }
+            }
+
             symphonyComments.add(
                     new Comment(
                             CWComment.getSymphonyId(),
