@@ -1,5 +1,8 @@
 package com.insightsystems.symphony.tal;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * Representation of ConnectWise comment for TAL adapter
  *
@@ -49,6 +52,11 @@ public class ConnectWiseComment {
      */
     private boolean resolutionFlag;
 
+    /**
+     * extra parameters
+     */
+    private Map<String, String> extraParams;
+
 
     //* ----------------------------- METHODS ----------------------------- *//
 
@@ -62,6 +70,7 @@ public class ConnectWiseComment {
         setDescriptionFlag(false);
         setInternalFlag(true);
         setResolutionFlag(false);
+        setExtraParams(new HashMap<>());
     }
 
     public ConnectWiseComment(String symphonyId, String thirdPartyId, String creator, String text, Long lastModified,
@@ -74,6 +83,7 @@ public class ConnectWiseComment {
         setDescriptionFlag(descriptionFlag);
         setInternalFlag(internalFlag);
         setResolutionFlag(resolutionFlag);
+        setExtraParams(new HashMap<>());
     }
 
     /**
@@ -94,6 +104,7 @@ public class ConnectWiseComment {
         setDescriptionFlag(false);
         setInternalFlag(true);
         setResolutionFlag(false);
+        setExtraParams(new HashMap<>());
     }
 
 
@@ -163,6 +174,14 @@ public class ConnectWiseComment {
         this.resolutionFlag = resolutionFlag;
     }
 
+    public Map<String, String> getExtraParams() {
+        return extraParams;
+    }
+
+    public void setExtraParams(Map<String, String> extraParams) {
+        this.extraParams = extraParams;
+    }
+
     public String toString() {
         return "Comment{" +
                 "symphonyId='" + getSymphonyId() + "', " +
@@ -172,4 +191,5 @@ public class ConnectWiseComment {
                 "lastModified=" + lastModified +
                 "}";
     }
+
 }
