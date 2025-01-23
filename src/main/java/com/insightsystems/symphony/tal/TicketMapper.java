@@ -159,7 +159,14 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        CWTicket.setRequester(mapUser(ticket.getRequester(), config));
+        String mappedUser = mapUser(ticket.getRequester(), config);
+
+        // This is done to prevent loss of information mapping back and forth if the user can't be mapped
+        if (mappedUser == null && ticket.getRequester() != null) {
+            CWTicket.getExtraParams().put("requester", ticket.getRequester());
+        }
+
+        CWTicket.setRequester(mappedUser);
     }
 
     /**
@@ -169,7 +176,14 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        CWTicket.setAssignedTo(mapUser(ticket.getAssignedTo(), config));
+        String mappedUser = mapUser(ticket.getAssignedTo(), config);
+
+        // This is done to prevent loss of information mapping back and forth if the user can't be mapped
+        if (mappedUser == null && ticket.getAssignedTo() != null) {
+            CWTicket.getExtraParams().put("assignedTo", ticket.getAssignedTo());
+        }
+
+        CWTicket.setAssignedTo(mappedUser);
     }
 
     /**
@@ -179,11 +193,30 @@ public class TicketMapper {
      * @param config adapter configuration
      */
     private static void mapCommentCreator(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
-        Optional.ofNullable(ticket.getComments())
-                .orElse(Collections.emptySet())
-                .stream()
-                .forEach(c -> CWTicket.addComment(new ConnectWiseComment(c.getSymphonyId(), c.getThirdPartyId(),
-                        mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
+        if (ticket == null || CWTicket == null || ticket.getComments() == null || config == null) {
+            return;
+        }
+
+        for (Comment c : ticket.getComments()) {
+            // Map user without loss of information -> store it in extra params
+            String mappedUser = mapUser(c.getCreator(), config);
+
+            ConnectWiseComment CWComment = new ConnectWiseComment(c.getSymphonyId(), c.getThirdPartyId(),
+                    mapUser(c.getCreator(), config), c.getText(), c.getLastModified());
+
+            if (mappedUser == null && c.getCreator() != null) {
+                CWComment.getExtraParams().put("creator", c.getCreator());
+            }
+
+
+            CWTicket.addComment(CWComment);
+        }
+
+//        Optional.ofNullable(ticket.getComments())
+//                .orElse(Collections.emptySet())
+//                .stream()
+//                .forEach(c -> CWTicket.addComment(new ConnectWiseComment(c.getSymphonyId(), c.getThirdPartyId(),
+//                        mapUser(c.getCreator(), config), c.getText(), c.getLastModified())));
 
     }
 
@@ -208,12 +241,12 @@ public class TicketMapper {
      * @return mapped identifier eligible for 3rd party ticketing system
      */
     private static String mapUser(String userId, TicketSystemConfig config) {
-        if (userId == null)
+        if (userId == null || config == null || config.getUserMappingForThirdParty() == null)
             return null;
 
-        if (config == null || config.getUserMappingForThirdParty() == null) {
-            return userId;
-        }
+//        if (config == null || config.getUserMappingForThirdParty() == null) {
+//            return userId;
+//        }
 
         UserIdMapping userIdMapping = config.getUserMappingForThirdParty().get(userId);
 
@@ -221,12 +254,12 @@ public class TicketMapper {
             return null;
         }
 
-        String thirdPartyUserId = userIdMapping.getThirdPartyId();
+//        String thirdPartyUserId = userIdMapping.getThirdPartyId();
 
-        if (thirdPartyUserId == null)
-            return userId;
+//        if (thirdPartyUserId == null)
+//            return userId;
 
-        return thirdPartyUserId;
+        return userIdMapping.getThirdPartyId();
     }
 
     /**
@@ -313,6 +346,11 @@ public class TicketMapper {
     private static void remapRequestor(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         if (CWTicket.getRequester() != null)
             ticket.setRequester(remapUser(CWTicket.getRequester(), config));
+        else { // See if previous data was stored (user was unable to be mapped)
+            if (CWTicket.getExtraParams().containsKey("requester")) {
+                ticket.setRequester(CWTicket.getExtraParams().get("requester"));
+            }
+        }
     }
 
     /**
@@ -324,6 +362,11 @@ public class TicketMapper {
     private static void remapAssignee(TalTicket ticket, ConnectWiseTicket CWTicket, TicketSystemConfig config) {
         if (CWTicket.getAssignee() != null)
             ticket.setAssignedTo(remapUser(CWTicket.getAssignee(), config));
+        else {
+            if (CWTicket.getExtraParams().containsKey("assignedTo")) {
+                ticket.setAssignedTo(CWTicket.getExtraParams().get("assignedTo"));
+            }
+        }
     }
 
     /**
@@ -345,18 +388,26 @@ public class TicketMapper {
             // If CWComment has creator, map the creator back
             if (CWComment.getCreator() != null) {
                 mappedCreator = remapUser(CWComment.getCreator(), config);
-            } else {
+            }
+
+            // Remapping to Symphony might not work, so this needs to remain here.
+            // Could also be the case that the CW ticket HAS a user, but it is not the same as Symphony.
+            // Since Symphony takes priority, if the names do not match, symphony's creator will be the one used.
+            if (mappedCreator == null) {
                 // If CWComment does not have a creator, find the matching Symphony comment
-                for (Comment SymphonyComment : ticket.getComments()) {
-                    if ((SymphonyComment.getSymphonyId() != null &&
-                            Objects.equals(SymphonyComment.getSymphonyId(), CWComment.getSymphonyId())) ||
-                            (SymphonyComment.getThirdPartyId() != null &&
-                            Objects.equals(SymphonyComment.getThirdPartyId(), CWComment.getThirdPartyId()))) {
-                        // Set creator to matching Symphony creator
-                        mappedCreator = SymphonyComment.getCreator();
-                        break;
-                    }
+                if (CWComment.getExtraParams().containsKey("creator")) {
+                    mappedCreator = CWComment.getExtraParams().get("creator");
                 }
+//                for (Comment SymphonyComment : ticket.getComments()) {
+//                    if ((SymphonyComment.getSymphonyId() != null &&
+//                            Objects.equals(SymphonyComment.getSymphonyId(), CWComment.getSymphonyId())) ||
+//                            (SymphonyComment.getThirdPartyId() != null &&
+//                            Objects.equals(SymphonyComment.getThirdPartyId(), CWComment.getThirdPartyId()))) {
+//                        // Set creator to matching Symphony creator
+//                        mappedCreator = SymphonyComment.getCreator();
+//                        break;
+//                    }
+//                }
             }
             symphonyComments.add(
                     new Comment(
