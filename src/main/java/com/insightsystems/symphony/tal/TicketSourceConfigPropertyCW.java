@@ -45,4 +45,8 @@ public interface TicketSourceConfigPropertyCW extends TicketSourceConfigProperty
      * PUBLIC - ID of the ConnectWise board to post ticket to
      */
     String BOARD_ID = "boardId";
+    /**
+     * PUBLIC - REQUIRED - Email of a user used in case of failed mappings
+     */
+    String STANDARD_USER_IDENTIFIER = "standardUserIdentifier";
 }

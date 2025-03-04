@@ -362,20 +362,17 @@ public class TicketServiceImpl {
     private String UpdateAssignee(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
         String returnVal = "";
 
-        if (!Objects.equals( refreshedTicket.getAssignee(), CWTicket.getAssignee() )) {
+        if (CWTicket.getAssignee() != null) {
+            if (!Objects.equals(refreshedTicket.getAssignee(), CWTicket.getAssignee())) {
+                String op = (refreshedTicket.getAssignee() == null ? "add" : "replace");
 
-            String op = (refreshedTicket.getAssignee() == null ? "add" : "replace");
-
-            if ( refreshedTicket.setAssignedTo(CWTicket.getAssignee()) ) {
+                refreshedTicket.setAssignedTo(CWTicket.getAssignee());
                 logger.info("updateAssignee: updating CW assignee");
                 returnVal = " {\n" +
                         "        \"op\": \"" + op + "\",\n" +
                         "        \"path\": \"owner/identifier\",\n" +
                         "        \"value\": \"" + CWTicket.getAssignee() + "\"\n" +
                         "    }\n";
-            } else {
-                logger.info("updateAssignee: updating Symphony assignee");
-                CWTicket.setAssignedTo( refreshedTicket.getAssignee() );
             }
         }
 

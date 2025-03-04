@@ -193,13 +193,6 @@ public class ConnectWiseTicket {
         }
 
         // TODO: requester from ConnectWise
-        /*try {
-            CWJsonTicket.setSummary(jsonObject.getString("summary"));
-        } catch (JSONException e) {
-            logger.info("jsonToConnectWiseTicket: summary not found on ConnectWise");
-        }*/
-
-
 
         setComments(new HashSet<>());
         setAttachments(new HashSet<>());

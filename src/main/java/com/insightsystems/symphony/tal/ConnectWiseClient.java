@@ -5,17 +5,12 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 import org.springframework.http.HttpStatus;
+
+import org.apache.commons.collections4.map.PassiveExpiringMap;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -53,6 +48,11 @@ public class ConnectWiseClient {
      */
     private HttpClient client;
 
+    /**
+     * Mappings for failed users. Keys expire after 24 hours.
+     */
+    private PassiveExpiringMap<String, String> failedMappedUsersLog;
+
 
     //* ----------------------------- METHODS ----------------------------- *//
 
@@ -67,6 +67,11 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(503);
 
         this.client = HttpClient.newHttpClient();
+
+        // Setting up map with expiration policy for failed user mappings
+        PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<String, String>
+                expirationPolicy = new PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<>(24, TimeUnit.HOURS);
+        this.failedMappedUsersLog = new PassiveExpiringMap<>(expirationPolicy, new HashMap<>());
     }
 
     /**
@@ -86,6 +91,11 @@ public class ConnectWiseClient {
         RecoverableHttpStatus.add(503);
 
         this.client = HttpClient.newHttpClient();
+
+        // Setting up map with expiration policy for failed user mappings
+        PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<String, String>
+                expirationPolicy = new PassiveExpiringMap.ConstantTimeToLiveExpirationPolicy<>(24, TimeUnit.HOURS);
+        this.failedMappedUsersLog = new PassiveExpiringMap<>(expirationPolicy, new HashMap<>());
     }
 
     /**
@@ -320,6 +330,7 @@ public class ConnectWiseClient {
 
         // Try to get priority ID from name
         String priorityId = getPriorityID(config, CWTicket.getPriority());
+        String assigneeId = getAssigneeId(config, CWTicket);
 
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
@@ -341,10 +352,10 @@ public class ConnectWiseClient {
                 "    \"status\" : {\n" +
                 "        \"name\": \""+ CWTicket.getStatus() +"\"\n" +
                 "    }" : "\n") +
-                (CWTicket.getAssignee() != null ?
+                (assigneeId != null ?
                 ",\n" +
                 "    \"owner\" : {\n" +
-                "        \"identifier\": \""+ CWTicket.getAssignee() +"\"\n" +
+                "        \"identifier\": \""+ assigneeId +"\"\n" +
                 "    }" : "\n") +
                 (priorityId != null ?
                 ",\n" +
@@ -433,6 +444,74 @@ public class ConnectWiseClient {
         }
 
         return retVal;
+    }
+
+    /**
+     *
+     * @param config System config
+     * @param ticket Ticket to get the assignee from
+     * @return Valid CW username for the "assignedTo" user for this ticket or null if no matching users could be found and there is no standard user
+     * @throws TalAdapterSyncException if an error occurs while retrieving a ConnectWise user with the Symphony email
+     */
+    public String getAssigneeId(TicketSystemConfig config, ConnectWiseTicket ticket) throws TalAdapterSyncException {
+        String assigneeId = null;
+
+        // If ticket was mapped correctly use mapped value
+        if (ticket.getAssignee() != null) {
+            assigneeId = ticket.getAssignee();
+        }
+        // If user mapping failed before
+        else {
+            // Check if there is a value saved in extra params
+            String symphonyUser = ticket.getExtraParams().get("assignedTo");
+            if (symphonyUser != null) {
+                // If mapping failed before then use the stored value
+                if (failedMappedUsersLog.get(symphonyUser) != null) {
+                    assigneeId = failedMappedUsersLog.get(symphonyUser);
+                }
+                // Otherwise get value from ConnectWise
+                else {
+                    boolean configNullChecked = true;
+                    if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
+                            config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
+                        logger.warn("getAssigneeId: unable to form URL. URL or API Path config properties cannot be null. Cannot retrieve user from ConnectWise");
+                        configNullChecked = false;
+                    }
+
+                    if (configNullChecked) {
+                        // Check if there's a user with that email on CW
+                        String urlSafeEmail = symphonyUser.replace(" ", "%20");
+                        String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
+                                config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
+                                "/system/members" +
+                                "?conditions=primaryEmail%20contains%20%22"+ urlSafeEmail + "%22";
+                        JSONArray userReponse = ConnectWiseAPICall(config, url, "GET", null)
+                                .getJSONArray("JSONArray"); // Get JSONArray from response
+                        if (userReponse != null) {
+                            if (!userReponse.isEmpty()) {
+                                JSONObject firstUserFound = userReponse.getJSONObject(0); // Get first priority found
+                                if (firstUserFound != null) {
+                                    assigneeId = firstUserFound.getInt("identifier") + ""; // Get priority's name
+                                    failedMappedUsersLog.put(symphonyUser, assigneeId);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            // If the assignee still hasn't been found:
+            if (assigneeId == null) {
+                assigneeId = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.STANDARD_USER_IDENTIFIER);
+                if (assigneeId != null) {
+                    failedMappedUsersLog.put(symphonyUser, assigneeId);
+                    logger.info("getAssigneeId: Mapping to standard user.");
+                } else {
+                    logger.warn("getAssigneeId: No standard user found. Assignee will remain null.");
+                }
+            }
+        }
+
+        return assigneeId;
     }
 
     /**
