@@ -319,7 +319,7 @@ public class TicketServiceImpl {
                     logger.error("UpdatePriority: Unable to find priority ID in ConnectWise with matching name.");
                 }
                 if (priorityID != null) { // If priority ID was found, set values
-                    returnVal = " {\n" + // FIXME: Priority patches need to be done by ID even when it is mapped to the name
+                    returnVal = " {\n" +
                             "        \"op\": \"" + op + "\",\n" +
                             "        \"path\": \"priority/id\",\n" +
                             "        \"value\": \"" + priorityID + "\"\n" +

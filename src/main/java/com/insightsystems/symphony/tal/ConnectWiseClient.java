@@ -349,7 +349,7 @@ public class ConnectWiseClient {
                 (priorityId != null ?
                 ",\n" +
                 "    \"priority\" : {\n" +
-                "        \"id\": "+ priorityId +"\n" + // FIXME: Priority should be mapped by name, not id
+                "        \"id\": "+ priorityId +"\n" +
                 "    }\n" : "\n") +
                 //      "    \"contactEmailAddress\" : \"" + talTicket.getRequester() + "\"\n" +
                 "}";
@@ -380,6 +380,7 @@ public class ConnectWiseClient {
      * Gets ConnectWise Priority ID based on Priority name.
      * This is needed because CW cannot do operations with the priority name, but the IDs can vary across
      * multiple CW instances.
+     * @param config System config
      * @param priorityName Name of priority
      * @return CW ID for priority or null if ID is not found
      * @throws TalAdapterSyncException if an error occurs with the call
