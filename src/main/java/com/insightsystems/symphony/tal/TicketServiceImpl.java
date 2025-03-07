@@ -186,7 +186,7 @@ public class TicketServiceImpl {
         // priority
         patchRequest += UpdatePriority(config, CWTicket, refreshedTicket, patchRequest);
         // assignee
-        patchRequest += UpdateAssignee(CWTicket, refreshedTicket, patchRequest);
+        patchRequest += UpdateAssignee(CWTicket, refreshedTicket, patchRequest, config);
         // requester
         // TODO: patchRequest += UpdateRequester(CWTicket, patchRequest);
 
@@ -354,12 +354,13 @@ public class TicketServiceImpl {
      * Creates patch string to Update ConnectWise value.
      * Updates Symphony if necessary.
      *
-     * @param CWTicket Symphony ticket with the latest information
+     * @param CWTicket        Symphony ticket with the latest information
      * @param refreshedTicket Ticket retrieved from CW
      * @param patchRequest
+     * @param config
      * @return PATCH string
      */
-    private String UpdateAssignee(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest) {
+    private String UpdateAssignee(ConnectWiseTicket CWTicket, ConnectWiseTicket refreshedTicket, String patchRequest, TicketSystemConfig config) {
         String returnVal = "";
 
         if (CWTicket.getAssignee() != null) {
@@ -373,6 +374,26 @@ public class TicketServiceImpl {
                         "        \"path\": \"owner/identifier\",\n" +
                         "        \"value\": \"" + CWTicket.getAssignee() + "\"\n" +
                         "    }\n";
+            }
+        } else {
+            // Check the extra params to see if the assignee has changed
+            String symphonyAssigneeEmail = CWTicket.getExtraParams().get("assignedTo");
+            if (symphonyAssigneeEmail != null && !symphonyAssigneeEmail.isEmpty()) {
+                // Get the CW Identifier
+                String symphonyAssigneeIdentifier = CWClient.getUserIdentifier(config, null, symphonyAssigneeEmail);
+                // If the users differ: Add the PATCH
+                if (symphonyAssigneeIdentifier != null &&
+                        !Objects.equals(symphonyAssigneeIdentifier, refreshedTicket.getAssignee())) {
+                    String op = (refreshedTicket.getAssignee() == null ? "add" : "replace");
+
+                    refreshedTicket.setAssignedTo(CWTicket.getAssignee());
+                    logger.info("updateAssignee: updating CW assignee");
+                    returnVal = " {\n" +
+                            "        \"op\": \"" + op + "\",\n" +
+                            "        \"path\": \"owner/identifier\",\n" +
+                            "        \"value\": \"" + symphonyAssigneeIdentifier + "\"\n" +
+                            "    }\n";
+                }
             }
         }
 

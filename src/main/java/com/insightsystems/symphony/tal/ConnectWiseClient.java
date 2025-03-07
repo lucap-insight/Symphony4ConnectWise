@@ -330,7 +330,10 @@ public class ConnectWiseClient {
 
         // Try to get priority ID from name
         String priorityId = getPriorityID(config, CWTicket.getPriority());
-        String assigneeId = getAssigneeId(config, CWTicket);
+        String assigneeId = getUserIdentifier(config,
+                CWTicket.getAssignee(),
+                CWTicket.getExtraParams().get("assignedTo")
+            );
 
         String url = config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) +
                 config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) +
@@ -447,34 +450,39 @@ public class ConnectWiseClient {
     }
 
     /**
-     *
+     * Maps Symphony user to a ConnectWise user. Returns ConnectWise user identifier.
      * @param config System config
-     * @param ticket Ticket to get the assignee from
+     * @param mappedUser User mapped by TicketMapper
+     * @param storedUser User stored in extra configs by TicketMapper (Symphony's user)
      * @return Valid CW username for the "assignedTo" user for this ticket or null if no matching users could be found and there is no standard user
      * @throws TalAdapterSyncException if an error occurs while retrieving a ConnectWise user with the Symphony email
      */
-    public String getAssigneeId(TicketSystemConfig config, ConnectWiseTicket ticket) throws TalAdapterSyncException {
-        String assigneeId = null;
+    public String getUserIdentifier(TicketSystemConfig config, String mappedUser, String storedUser) throws TalAdapterSyncException {
+        String userId = null;
+        logger.info("getUserIdentifier: Getting ConnectWise identifier for user");
 
         // If ticket was mapped correctly use mapped value
-        if (ticket.getAssignee() != null) {
-            assigneeId = ticket.getAssignee();
+        if (mappedUser != null) {
+            userId = mappedUser;
+            logger.info("getUserIdentifier: mapped user identifier used: " + userId);
         }
         // If user mapping failed before
         else {
             // Check if there is a value saved in extra params
-            String symphonyUser = ticket.getExtraParams().get("assignedTo");
-            if (symphonyUser != null) {
+            String symphonyUser = storedUser;
+            if (symphonyUser != null && !symphonyUser.isEmpty()) {
                 // If mapping failed before then use the stored value
-                if (failedMappedUsersLog.get(symphonyUser) != null) {
-                    assigneeId = failedMappedUsersLog.get(symphonyUser);
+                if (failedMappedUsersLog.containsKey(symphonyUser)) {
+                    userId = failedMappedUsersLog.get(symphonyUser);
+                    logger.info("getUserIdentifier: Using previously failed user: " + userId);
+                    return userId;
                 }
                 // Otherwise get value from ConnectWise
                 else {
                     boolean configNullChecked = true;
                     if (config.getTicketSourceConfig().get(TicketSourceConfigProperty.URL) == null ||
                             config.getTicketSourceConfig().get(TicketSourceConfigProperty.API_PATH) == null) {
-                        logger.warn("getAssigneeId: unable to form URL. URL or API Path config properties cannot be null. Cannot retrieve user from ConnectWise");
+                        logger.warn("getUserIdentifier: unable to form URL. URL or API Path config properties cannot be null. Cannot retrieve user from ConnectWise");
                         configNullChecked = false;
                     }
 
@@ -489,29 +497,34 @@ public class ConnectWiseClient {
                                 .getJSONArray("JSONArray"); // Get JSONArray from response
                         if (userReponse != null) {
                             if (!userReponse.isEmpty()) {
-                                JSONObject firstUserFound = userReponse.getJSONObject(0); // Get first priority found
+                                JSONObject firstUserFound = userReponse.getJSONObject(0); // Get first user found
                                 if (firstUserFound != null) {
-                                    assigneeId = firstUserFound.getInt("identifier") + ""; // Get priority's name
-                                    failedMappedUsersLog.put(symphonyUser, assigneeId);
+                                    userId = firstUserFound.getString("identifier"); // Get user's identifier
+                                    failedMappedUsersLog.put(symphonyUser, userId);
+                                    logger.info("getUserIdentifier: CW user found: " + userId);
                                 }
                             }
                         }
                     }
                 }
             }
-            // If the assignee still hasn't been found:
-            if (assigneeId == null) {
-                assigneeId = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.STANDARD_USER_IDENTIFIER);
-                if (assigneeId != null) {
-                    failedMappedUsersLog.put(symphonyUser, assigneeId);
-                    logger.info("getAssigneeId: Mapping to standard user.");
+            // If the user still hasn't been found:
+            if (userId == null) {
+                userId = config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.STANDARD_USER_IDENTIFIER);
+                if (userId != null) {
+                    logger.info("getUserIdentifier: Mapping to standard user.");
                 } else {
-                    logger.warn("getAssigneeId: No standard user found. Assignee will remain null.");
+                    logger.warn("getUserIdentifier: No standard user found. User will remain null.");
                 }
+                // Log user anyway. This fast-tracks reaching the null when user is not on CW
+                if (symphonyUser != null && !symphonyUser.isEmpty())
+                    failedMappedUsersLog.put(symphonyUser, userId);
+                else if (mappedUser != null && !mappedUser.isEmpty())
+                    failedMappedUsersLog.put(mappedUser, userId);
             }
         }
 
-        return assigneeId;
+        return userId;
     }
 
     /**
@@ -600,15 +613,20 @@ public class ConnectWiseClient {
 
             for ( ConnectWiseComment CWComment : commentsToPost ) {
                 commentNumber++;
+                String commentCreatorIdentifier = getUserIdentifier(
+                        config,
+                        CWComment.getCreator(),
+                        CWComment.getExtraParams().get("creator")
+                );
                 requestBody = "{\n" +
                         "    \"text\" : \"" + CWComment.getText() + "\",\n" +
                         "    \"detailDescriptionFlag\": " + CWComment.isDescriptionFlag() + ",\n" +
                         "    \"internalAnalysisFlag\": " + CWComment.isInternalFlag() + ",\n" +
                         "    \"resolutionFlag\": " + CWComment.isResolutionFlag() +
-                        (CWComment.getCreator() != null ? // Make sure comment creator is not null
+                        (commentCreatorIdentifier != null ? // Make sure comment creator is not null
                             ",\n" +
                             "    \"member\": {\n" +
-                            "        \"identifier\": \"" + CWComment.getCreator() + "\"\n" +
+                            "        \"identifier\": \"" + commentCreatorIdentifier + "\"\n" +
                             "    }\n" : "\n") +
                         "}";
 
@@ -657,15 +675,19 @@ public class ConnectWiseClient {
 
         String description = "New Symphony ticket: No description found";
         if (CWTicket.getDescription() != null) description = CWTicket.getDescription().getText();
+        String userIdentifier = getUserIdentifier(config,
+                CWTicket.getRequester(),
+                CWTicket.getExtraParams().get("requester")
+        );
         String requestBody = "{\n" +
                 "    \"text\" : \"" + description + "\",\n" +
                 "    \"detailDescriptionFlag\": true,\n" + // It's the description
                 "    \"internalAnalysisFlag\": false,\n" +
                 "    \"resolutionFlag\": false" +
-                (CWTicket.getRequester() != null ? // make sure ticket requester is not null
+                (userIdentifier != null ? // make sure ticket requester is not null
                     ",\n" +
                     "    \"member\": {\n" +
-                    "        \"identifier\": \"" + CWTicket.getRequester() + "\"\n" +
+                    "        \"identifier\": \"" + userIdentifier + "\"\n" +
                     "    }\n"
                     : "\n") +
                 "}";
