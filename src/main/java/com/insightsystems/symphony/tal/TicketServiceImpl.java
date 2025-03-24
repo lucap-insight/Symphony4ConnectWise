@@ -305,7 +305,13 @@ public class TicketServiceImpl {
 
         if (!Objects.equals( refreshedTicket.getPriority(), CWTicket.getPriority() )) {
             String op = (refreshedTicket.getPriority() == null ? "add" : "replace");
-            String CWPriority = config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority());
+            String CWPriority = "null";
+
+            if (config != null && config.getPriorityMappingForSymphony() != null) {
+                CWPriority = Optional.ofNullable(
+                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority())
+                ).orElse("null");
+            }
 
             if ( refreshedTicket.setPriority(CWTicket.getPriority()) ) {
                 logger.info("updatePriority: updating CW priority from {} to {}",
