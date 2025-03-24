@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 
 import java.util.*;
+import java.util.function.BiFunction;
 
 /**
  * Implements logic for creating/updating/retrieving tickets from ConnectWise.
@@ -28,6 +29,9 @@ public class TicketServiceImpl {
     * Instance of ConnectWiseClient that is responsible for the communication with ConnectWise
     */
     private ConnectWiseClient CWClient;
+    BiFunction<TicketSystemConfig, ConnectWiseTicket, String> getPriority = (TicketSystemConfig config, ConnectWiseTicket CWTicket) ->
+        Optional.of(config).map(TicketSystemConfig::getPriorityMappingForSymphony).map(a -> a.get(CWTicket.getPriority())).orElse("Priority mapping problem");
+
 
 
     //* ----------------------------- METHODS ----------------------------- *//
@@ -132,8 +136,7 @@ public class TicketServiceImpl {
         // Adding initial priority comment
         if (config!= null && config.getPriorityMappingForSymphony() != null) { // null check
             ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
-                    String.format("Initial ticket priority: %s",
-                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority())), null);
+                String.format("Initial ticket priority: %s", getPriority.apply(config, CWTicket)), null);
             CWTicket.addComment(initialPriorityComment);
         }
 
@@ -314,9 +317,7 @@ public class TicketServiceImpl {
             }
 
             if ( refreshedTicket.setPriority(CWTicket.getPriority()) ) {
-                logger.info("updatePriority: updating CW priority from {} to {}",
-                        CWPriority,
-                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
+                logger.info("updatePriority: updating CW priority from {} to {}", CWPriority, getPriority.apply(config, CWTicket));
                 // Get priority ID based on priority name
                 String priorityID = null;
                 try {
@@ -332,8 +333,7 @@ public class TicketServiceImpl {
                             "    }\n";
 
                     // Add comment for change in priority
-                    String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
-                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+                    String priorityChangeText = "Priority updated: " + CWPriority + " -> " + getPriority.apply(config, CWTicket);
                     ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
                             null,
                             false, true, false);
@@ -343,8 +343,7 @@ public class TicketServiceImpl {
                 }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
-                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()),
-                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
+                    getPriority.apply(config, CWTicket),getPriority.apply(config, refreshedTicket));
                 CWTicket.setPriority( refreshedTicket.getPriority() );
             }
         }
