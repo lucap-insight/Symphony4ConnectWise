@@ -309,7 +309,7 @@ public class TicketServiceImpl {
 
             if (config != null && config.getPriorityMappingForSymphony() != null) {
                 CWPriority = Optional.ofNullable(
-                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority())
+                        getSymphonyPriority(config, refreshedTicket)
                 ).orElse("null");
             }
 
@@ -343,8 +343,8 @@ public class TicketServiceImpl {
                 }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
-                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()),
-                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
+                        getSymphonyPriority(config, CWTicket),
+                        getSymphonyPriority(config, refreshedTicket));
                 CWTicket.setPriority( refreshedTicket.getPriority() );
             }
         }
