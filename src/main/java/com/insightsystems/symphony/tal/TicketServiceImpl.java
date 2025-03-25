@@ -133,7 +133,7 @@ public class TicketServiceImpl {
         if (config!= null && config.getPriorityMappingForSymphony() != null) { // null check
             ConnectWiseComment initialPriorityComment = new ConnectWiseComment(null, null, null,
                     String.format("Initial ticket priority: %s",
-                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority())), null);
+                            getSymphonyPriority(config, CWTicket)), null);
             CWTicket.addComment(initialPriorityComment);
         }
 
@@ -309,14 +309,14 @@ public class TicketServiceImpl {
 
             if (config != null && config.getPriorityMappingForSymphony() != null) {
                 CWPriority = Optional.ofNullable(
-                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority())
+                        getSymphonyPriority(config, refreshedTicket)
                 ).orElse("null");
             }
 
             if ( refreshedTicket.setPriority(CWTicket.getPriority()) ) {
                 logger.info("updatePriority: updating CW priority from {} to {}",
                         CWPriority,
-                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()) );
+                        getSymphonyPriority(config, CWTicket));
                 // Get priority ID based on priority name
                 String priorityID = null;
                 try {
@@ -333,7 +333,7 @@ public class TicketServiceImpl {
 
                     // Add comment for change in priority
                     String priorityChangeText = "Priority updated: " + CWPriority + " -> " +
-                            config.getPriorityMappingForSymphony().get(CWTicket.getPriority());
+                            getSymphonyPriority(config, CWTicket);
                     ConnectWiseComment priorityChange = new ConnectWiseComment(null, null, null, priorityChangeText,
                             null,
                             false, true, false);
@@ -343,8 +343,8 @@ public class TicketServiceImpl {
                 }
             } else {
                 logger.info("updatePriority: updating Symphony priority from {} to {}",
-                        config.getPriorityMappingForSymphony().get(CWTicket.getPriority()),
-                        config.getPriorityMappingForSymphony().get(refreshedTicket.getPriority()) );
+                        getSymphonyPriority(config, CWTicket),
+                        getSymphonyPriority(config, refreshedTicket));
                 CWTicket.setPriority( refreshedTicket.getPriority() );
             }
         }
@@ -509,6 +509,24 @@ public class TicketServiceImpl {
         return url;
     }
 
+    /**
+     * Gets the priority mapping for Symphony. If it fails using the config it uses the default mappings.
+     * @param config The TicketSystemConfig with the mappings
+     * @param CWTicket ticket to map the priority
+     * @return String of mapped priority; "Priority mapping problem" if mapping failed.
+     */
+    private String getSymphonyPriority(TicketSystemConfig config, ConnectWiseTicket CWTicket) {
+        String mappedPriority = Optional.of(config).map(TicketSystemConfig::getPriorityMappingForSymphony).map(a ->
+                a.get(CWTicket.getPriority())).orElse(null);
+
+        if (mappedPriority == null) {
+            mappedPriority = Optional.ofNullable(DefaultTicketMappings.getPriorityMappingForSymphony())
+                    .map(a -> a.get(CWTicket.getPriority()))
+                    .orElse("Priority mapping problem");
+        }
+
+        return mappedPriority;
+    }
 
     //* ----------------------------- GETTERS / SETTERS ----------------------------- *//
 }
