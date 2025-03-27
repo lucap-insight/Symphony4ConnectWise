@@ -89,14 +89,16 @@ public class TicketServiceImpl {
                     );
             }
             else { //else
-                // Add connectionFailedParameter
-                if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
-                    // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
-                    CWTicket.getExtraParams().replace("connectionFailed", "true");
+                // If this is NOT the ticket's first sync
+                if (CWTicket.getExtraParams().get("synced") == null ||
+                        Objects.equals(CWTicket.getExtraParams().get("synced"), "true")) {
+                    // Add connectionFailedParameter
+                    if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "true") != null) {
+                        // "putIfAbsent" returns null if "put" worked, and returns the value found otherwise
+                        CWTicket.getExtraParams().replace("connectionFailed", "true");
+                    }
                 }
             }
-
-
 
         } else {
             // Set refreshedCWTicket's Symphony variables
@@ -163,9 +165,6 @@ public class TicketServiceImpl {
         if (CWTicket.getExtraParams().putIfAbsent("synced", "true") != null) {
             // Make sure ticket knows it has been synced
             CWTicket.getExtraParams().replace("synced", "true");
-        }
-        if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
-            CWTicket.getExtraParams().replace("connectionFailed", "false");
         }
 
     }
