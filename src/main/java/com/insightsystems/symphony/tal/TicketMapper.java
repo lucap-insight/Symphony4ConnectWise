@@ -395,6 +395,9 @@ public class TicketMapper {
                 // If CWComment does not have a creator, find the matching Symphony comment
                 if (CWComment.getExtraParams().containsKey("creator")) {
                     mappedCreator = CWComment.getExtraParams().get("creator");
+                } else {
+                    // A comment cannot have no creator
+                    mappedCreator = ticket.getRequester();
                 }
 //                for (Comment SymphonyComment : ticket.getComments()) {
 //                    if ((SymphonyComment.getSymphonyId() != null &&
