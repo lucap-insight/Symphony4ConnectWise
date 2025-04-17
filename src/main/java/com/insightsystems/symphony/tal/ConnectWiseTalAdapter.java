@@ -148,10 +148,15 @@ public class ConnectWiseTalAdapter implements TalAdapter {
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
-                // Update it with the newest information
-                ticketService.updateTicket(config, CWTicket, refreshedCWTicket);
-                // Map ConnectWise ticket back to Symphony
-                TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
+                if (Objects.equals(refreshedCWTicket.getExtraParams().get("404"), "true")) {
+                    logger.info("syncTalTicket: Ticket not found in ConnectWise. Closing Symphony ticket.");
+                    talTicket.setStatus("Closed");
+                } else {
+                    // Update it with the newest information
+                    ticketService.updateTicket(config, CWTicket, refreshedCWTicket);
+                    // Map ConnectWise ticket back to Symphony
+                    TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
+                }
             } else {
                 // Otherwise, create new ticket
                 ticketService.createTicket(config, CWTicket);

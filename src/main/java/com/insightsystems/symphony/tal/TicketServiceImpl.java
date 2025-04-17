@@ -50,6 +50,8 @@ public class TicketServiceImpl {
 
         // Possible error
         TalAdapterSyncException connectionFailedError = null;
+        // 404 error
+        boolean Ticket404NotFound = false;
 
         ConnectWiseTicket refreshedCWTicket = null;
         // Attempt URL
@@ -57,7 +59,12 @@ public class TicketServiceImpl {
             try {
                 refreshedCWTicket = CWClient.get(config, CWTicket.getUrl());
             } catch (TalAdapterSyncException e) {
-                connectionFailedError = e;
+                if (e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    logger.warn("Ticket not found: " + e.getHttpStatus());
+                    Ticket404NotFound = true;
+                } else {
+                    connectionFailedError = e;
+                }
             }
         }
 
@@ -70,13 +77,24 @@ public class TicketServiceImpl {
                 refreshedCWTicket = CWClient.get(config, url);
                 CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
-                connectionFailedError = e;
+                if (e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    logger.warn("Ticket not found: " + e.getHttpStatus());
+                    Ticket404NotFound = true;
+                } else {
+                    connectionFailedError = e;
+                }
             }
         }
 
         if (refreshedCWTicket == null) { // If getCWTicket was unable to get ConnectWise's ticket
             // Warn of error
             logger.warn("getCWTicket: Failed to retrieve ticket from ConnectWise");
+
+            // If it is a 404 error close Symphony ticket
+            if (Ticket404NotFound) {
+                CWTicket.getExtraParams().put("404","true");
+                return CWTicket;
+            }
 
             // If it has failed before:
             if (Objects.equals(CWTicket.getExtraParams().get("connectionFailed"), "true")) {

@@ -40,7 +40,9 @@ public class TicketMapper {
                 ticket.getSymphonyId(), ticket.getSymphonyLink(), ticket.getThirdPartyId(),
                 ticket.getThirdPartyLink(), ticket.getExtraParams()
         );
-
+        if (CWTicket.getExtraParams() == null) {
+            CWTicket.setExtraParams(new HashMap<>());
+        }
         CWTicket.setSummary(ticket.getSubject());
         mapTicketDescription(ticket, CWTicket, config);
         mapTicketStatus(ticket, CWTicket, config);
