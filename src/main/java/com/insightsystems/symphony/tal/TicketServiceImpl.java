@@ -55,7 +55,7 @@ public class TicketServiceImpl {
 
         ConnectWiseTicket refreshedCWTicket = null;
         // Attempt URL
-        if (CWTicket.getUrl() != null) {
+        if (CWTicket.getUrl() != null && !CWTicket.getUrl().isBlank()) {
             try {
                 refreshedCWTicket = CWClient.get(config, CWTicket.getUrl());
             } catch (TalAdapterSyncException e) {
@@ -69,7 +69,7 @@ public class TicketServiceImpl {
         }
 
         // If URL did not work
-        if (CWTicket.getId() != null && refreshedCWTicket == null) {
+        if (CWTicket.getId() != null && !CWTicket.getId().isBlank() && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
             String url = "";
             try {
