@@ -38,14 +38,9 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     private final TalConfigService talConfigService;
 
     /**
-     * In sake of testing simplicity, one may use MockTalProxy provided with this sample
-     */
-    private final TalProxy talProxy;
-
-    /**
      * Instance of TicketServiceImpl that handles the ticket logic
      */
-    private TicketServiceImpl ticketService;
+    private final TicketServiceImpl ticketService;
 
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
@@ -60,13 +55,10 @@ public class ConnectWiseTalAdapter implements TalAdapter {
      * Default no-arg constructor
      *
      * @param talConfigService Dependency injection for a {@link TalConfigService}
-     * @param talProxy Dependency injection for a {@link TalProxy}
      */
     public ConnectWiseTalAdapter(TalConfigService talConfigService,
-        TalProxy talProxy,
         TicketServiceImpl ticketService) {
         this.talConfigService = talConfigService;
-        this.talProxy = talProxy;
         this.ticketService = ticketService;
     }
 
@@ -148,7 +140,8 @@ public class ConnectWiseTalAdapter implements TalAdapter {
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
-                if (Objects.equals(refreshedCWTicket.getExtraParams().get("404"), "true")) {
+                if (refreshedCWTicket.getExtraParams() != null &&
+                        Objects.equals(refreshedCWTicket.getExtraParams().get("404"), "true")) {
                     logger.info("syncTalTicket: Ticket not found in ConnectWise. Closing Symphony ticket.");
                     talTicket.setStatus("Closed");
                 } else {

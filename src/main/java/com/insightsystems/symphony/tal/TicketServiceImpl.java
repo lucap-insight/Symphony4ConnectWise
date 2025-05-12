@@ -59,7 +59,8 @@ public class TicketServiceImpl {
             try {
                 refreshedCWTicket = CWClient.get(config, CWTicket.getUrl());
             } catch (TalAdapterSyncException e) {
-                if (e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
                     logger.warn("Ticket not found: " + e.getHttpStatus());
                     Ticket404NotFound = true;
                 } else {
@@ -77,7 +78,8 @@ public class TicketServiceImpl {
                 refreshedCWTicket = CWClient.get(config, url);
                 CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
-                if (e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
                     logger.warn("Ticket not found: " + e.getHttpStatus());
                     Ticket404NotFound = true;
                 } else {
