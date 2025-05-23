@@ -1,7 +1,9 @@
 package com.insightsystems.symphony.tal;
 
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -11,12 +13,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.HttpClientErrorException;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +34,7 @@ import com.avispl.symphony.api.tal.TalAdapter;
 import com.avispl.symphony.api.tal.TalConfigService;
 import com.avispl.symphony.api.tal.TalProxy;
 import com.avispl.symphony.api.tal.dto.TalTicket;
+import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
 import com.avispl.symphony.api.tal.error.TalNotRecoverableException;
@@ -42,6 +48,7 @@ class ConnectWiseTalAdapterTest {
 	private static TicketServiceImpl ticketService;
 	private static ConnectWiseClient restCWClient;
 	private static final String TAL_TICKET = "src/test/resources/talTicketSample1.json";
+	private static final String TAL_TICKET_TO_CLOSE = "src/test/resources/talTicketToCW.json";
 	private static TalAdapterSyncException recoverableException;
 	private static TalAdapterSyncException notRecoverableException;
 
@@ -52,9 +59,9 @@ class ConnectWiseTalAdapterTest {
 		ticketService = mock(TicketServiceImpl.class);
 		talAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
 		restCWClient = mock();
-		ReflectionTestUtils.setField(talAdapter, "config", config);
+//		ReflectionTestUtils.setField(talAdapter, "config", config); obviously wrong
 		ReflectionTestUtils.setField(talAdapter, "ticketService", ticketService);
-		ReflectionTestUtils.setField(talAdapter, "restCWClient", restCWClient);
+//		ReflectionTestUtils.setField(talAdapter, "restCWClient", restCWClient); also wrong
 
 		recoverableException = new TalAdapterSyncException("Recoverable exception", HttpStatus.valueOf(408));
 		notRecoverableException = new TalAdapterSyncException("Not recoverable exception");
@@ -80,7 +87,7 @@ class ConnectWiseTalAdapterTest {
 		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(null);
 
 		// Verify output
-		Assertions.assertEquals(ticket, talAdapter.syncTalTicket(ticket));
+		assertEquals(ticket, talAdapter.syncTalTicket(ticket));
 
 		// Ensure that it ran createTicket
 		verify(ticketService, times(1)).createTicket(any(TicketSystemConfig.class),any(ConnectWiseTicket.class));
@@ -100,7 +107,7 @@ class ConnectWiseTalAdapterTest {
 		when(ticketService.getCWTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class))).thenReturn(mock(ConnectWiseTicket.class));
 
 		// Verify output
-		Assertions.assertEquals(ticket, talAdapter.syncTalTicket(ticket));
+		assertEquals(ticket, talAdapter.syncTalTicket(ticket));
 
 		// Ensure that it ran createTicket
 		verify(ticketService, times(1)).updateTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class), any(ConnectWiseTicket.class));
@@ -225,6 +232,35 @@ class ConnectWiseTalAdapterTest {
 				.updateTicket(any(TicketSystemConfig.class), any(ConnectWiseTicket.class),any(ConnectWiseTicket.class));
 
 		assertThrows(TalNotRecoverableException.class, () -> talAdapter.syncTalTicket(ticket));
+	}
+
+	@Test
+	void syncTalTicket_whenTicketNotFound_shouldReturnClosed() throws IOException, ExecutionException, InterruptedException {
+		TalTicket talTicket = makeTalTicketFromJson(TAL_TICKET_TO_CLOSE);
+		TicketSystemConfig config = new TicketSystemConfig();
+		config.setTicketSourceConfig(Map.of(
+				TicketSourceConfigPropertyCW.CLIENT_ID, "mockClientId",
+				TicketSourceConfigPropertyCW.PUBLIC_KEY, "mockPublicKey",
+				TicketSourceConfigPropertyCW.PRIVATE_KEY, "mockPrivateKey",
+				TicketSourceConfigPropertyCW.COMPANY_ID, "mockCompanyId",
+				TicketSourceConfigProperty.URL,"https://connect.insightsystems.com.au",
+				TicketSourceConfigProperty.API_PATH,"/v4_6_release/apis/3.0",
+				TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_TICKET,"/service/tickets",
+				TicketSourceConfigPropertyCW.URL_PATTERN_TO_GET_COMMENTS,"/notes",
+				TicketSourceConfigPropertyCW.COMPANY_REC_ID,"250"
+				)
+		);
+		when(talConfigService.retrieveTicketSystemConfig(any())).thenReturn(config);
+		HttpClient client = mock(HttpClient.class);
+		ConnectWiseClient connectWiseClient = new ConnectWiseClient();
+		ReflectionTestUtils.setField(connectWiseClient, "client", client);
+		TicketServiceImpl ticketService = new TicketServiceImpl(connectWiseClient);
+		talAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
+		when(client.send(any(),any())).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+
+		TalTicket result = talAdapter.syncTalTicket(talTicket);
+
+		assertEquals("Closed", result.getStatus());
 	}
 
 	private static TalTicket makeTalTicketFromJson(String path) throws IOException {
