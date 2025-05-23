@@ -136,20 +136,26 @@ public class ConnectWiseTalAdapter implements TalAdapter {
             }
 
             // 1. make call to ConnectWise and get live ticket data
-            ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
+            ConnectWiseTicket refreshedCWTicket = null;
+            try {
+                refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
+            } catch (TalAdapterSyncException e) {
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    logger.info("syncTalTicket: Ticket not found in ConnectWise. Closing Symphony ticket.");
+                    talTicket.setStatus("Closed");
+                    return talTicket;
+                } else {
+                    throw e;
+                }
+            }
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {
-                if (refreshedCWTicket.getExtraParams() != null &&
-                        Objects.equals(refreshedCWTicket.getExtraParams().get("404"), "true")) {
-                    logger.info("syncTalTicket: Ticket not found in ConnectWise. Closing Symphony ticket.");
-                    talTicket.setStatus("Closed");
-                } else {
-                    // Update it with the newest information
-                    ticketService.updateTicket(config, CWTicket, refreshedCWTicket);
-                    // Map ConnectWise ticket back to Symphony
-                    TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
-                }
+                // Update it with the newest information
+                ticketService.updateTicket(config, CWTicket, refreshedCWTicket);
+                // Map ConnectWise ticket back to Symphony
+                TicketMapper.mapThirdPartyToSymphony(talTicket, CWTicket, config);
             } else {
                 // Otherwise, create new ticket
                 ticketService.createTicket(config, CWTicket);
