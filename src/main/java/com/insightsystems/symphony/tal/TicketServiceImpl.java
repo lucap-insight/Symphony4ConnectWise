@@ -53,16 +53,22 @@ public class TicketServiceImpl {
 
         ConnectWiseTicket refreshedCWTicket = null;
         // Attempt URL
-        if (CWTicket.getUrl() != null) {
+        if (CWTicket.getUrl() != null && !CWTicket.getUrl().isBlank()) {
             try {
                 refreshedCWTicket = CWClient.get(config, CWTicket.getUrl());
             } catch (TalAdapterSyncException e) {
-                connectionFailedError = e;
+                // Throw error if it is a 404
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    throw e;
+                } else {
+                    connectionFailedError = e;
+                }
             }
         }
 
         // If URL did not work
-        if (CWTicket.getId() != null && refreshedCWTicket == null) {
+        if (CWTicket.getId() != null && !CWTicket.getId().isBlank() && refreshedCWTicket == null) {
             // Validation to make sure neither ID, URL, nor API Path is null
             String url = "";
             try {
@@ -70,7 +76,12 @@ public class TicketServiceImpl {
                 refreshedCWTicket = CWClient.get(config, url);
                 CWTicket.setUrl(url);
             } catch (TalAdapterSyncException e) {
-                connectionFailedError = e;
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    throw e;
+                } else {
+                    connectionFailedError = e;
+                }
             }
         }
 

@@ -25,14 +25,12 @@ public class ConnectWiseConfiguration {
 	 * TAL context will provide configuration and routing services
 	 *
 	 * @param talConfigService the tal config service
-	 * @param talRoutingService the tal routing service
 	 * @return the tal adapter
 	 */
 	@Bean(name = "TAL CWAdapter")
 	public TalAdapter talCWAdapter(
 			TalConfigService talConfigService,
-			TalProxy talRoutingService,
 			TicketServiceImpl ticketService) {
-		return new ConnectWiseTalAdapter(talConfigService, talRoutingService, ticketService);
+		return new ConnectWiseTalAdapter(talConfigService, ticketService);
 	}
 }

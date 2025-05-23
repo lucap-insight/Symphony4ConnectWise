@@ -38,14 +38,9 @@ public class ConnectWiseTalAdapter implements TalAdapter {
     private final TalConfigService talConfigService;
 
     /**
-     * In sake of testing simplicity, one may use MockTalProxy provided with this sample
-     */
-    private final TalProxy talProxy;
-
-    /**
      * Instance of TicketServiceImpl that handles the ticket logic
      */
-    private TicketServiceImpl ticketService;
+    private final TicketServiceImpl ticketService;
 
     /**
      * Account identifier - have to be provided to 3rd party adapter implementors by Symphony team
@@ -60,13 +55,10 @@ public class ConnectWiseTalAdapter implements TalAdapter {
      * Default no-arg constructor
      *
      * @param talConfigService Dependency injection for a {@link TalConfigService}
-     * @param talProxy Dependency injection for a {@link TalProxy}
      */
     public ConnectWiseTalAdapter(TalConfigService talConfigService,
-        TalProxy talProxy,
         TicketServiceImpl ticketService) {
         this.talConfigService = talConfigService;
-        this.talProxy = talProxy;
         this.ticketService = ticketService;
     }
 
@@ -144,7 +136,19 @@ public class ConnectWiseTalAdapter implements TalAdapter {
             }
 
             // 1. make call to ConnectWise and get live ticket data
-            ConnectWiseTicket refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
+            ConnectWiseTicket refreshedCWTicket = null;
+            try {
+                refreshedCWTicket = ticketService.getCWTicket(config, CWTicket);
+            } catch (TalAdapterSyncException e) {
+                if (e.getHttpStatus() != null &&
+                        e.getHttpStatus().toString().toLowerCase().contains("404")) {
+                    logger.info("syncTalTicket: Ticket not found in ConnectWise. Closing Symphony ticket.");
+                    talTicket.setStatus("Closed");
+                    return talTicket;
+                } else {
+                    throw e;
+                }
+            }
 
             // If CWTicket exists in CW
             if (refreshedCWTicket != null) {

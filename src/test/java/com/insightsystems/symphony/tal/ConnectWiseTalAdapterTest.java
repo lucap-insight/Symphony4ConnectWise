@@ -47,11 +47,10 @@ class ConnectWiseTalAdapterTest {
 
 	@BeforeAll
 	public static void init() {
-		talRoutingService = mock();
 		talConfigService = mock();
 		config = mock();
 		ticketService = mock(TicketServiceImpl.class);
-		talAdapter = new ConnectWiseTalAdapter(talConfigService, talRoutingService, ticketService);
+		talAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
 		restCWClient = mock();
 		ReflectionTestUtils.setField(talAdapter, "config", config);
 		ReflectionTestUtils.setField(talAdapter, "ticketService", ticketService);
