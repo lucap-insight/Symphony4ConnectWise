@@ -22,6 +22,7 @@ import com.avispl.symphony.api.common.error.InvalidArgumentException;
 import com.avispl.symphony.api.tal.dto.TicketSourceConfigProperty;
 import com.avispl.symphony.api.tal.dto.TicketSystemConfig;
 import com.avispl.symphony.api.tal.error.TalAdapterSyncException;
+import org.springframework.web.client.HttpClientErrorException;
 
 /**
  * Sends and receives HTTP API requests to and from ConnectWise.
@@ -172,6 +173,13 @@ public class ConnectWiseClient {
                 throw new TalAdapterSyncException("HTTP request error", HttpStatus.valueOf(response.statusCode()), e);
             } else // Not recoverable. Without a response we can't be sure sending another request will fix it
                 throw new TalAdapterSyncException("HTTP request error", e);
+        } catch (HttpClientErrorException e) {
+            if (HttpStatus.valueOf(e.getStatusText()) == HttpStatus.NOT_FOUND) {
+                throw new TalAdapterSyncException("Ticket not found", HttpStatus.NOT_FOUND);
+            } else {
+                throw new TalAdapterSyncException(method + " Request error: " + e.getMessage(),
+                        HttpStatus.valueOf(e.getStatusText()));
+            }
         }
 
         if (response != null && (response.statusCode() == 200 || response.statusCode() == 201)) {
