@@ -89,6 +89,11 @@ public class ConnectWiseTalAdapter implements TalAdapter {
             }
             TicketSystemConfig config = talConfigService.retrieveTicketSystemConfig(UUID.fromString(talTicket.getCustomerId()));
 
+            if (config == null) {
+                logger.error("failed to retrieve ticket system configuration");
+                throw new TalAdapterSyncException("unable to retrieve ticket system configuration");
+            }
+
             // Confirm that credentials have been set up
             if (config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.CLIENT_ID) == null ||
                     config.getTicketSourceConfig().get(TicketSourceConfigPropertyCW.PUBLIC_KEY) == null ||

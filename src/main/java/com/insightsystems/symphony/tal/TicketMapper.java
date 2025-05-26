@@ -397,10 +397,13 @@ public class TicketMapper {
                 // If CWComment does not have a creator, find the matching Symphony comment
                 if (CWComment.getExtraParams().containsKey("creator")) {
                     mappedCreator = CWComment.getExtraParams().get("creator");
-                } else {
-                    // A comment cannot have no creator
+                }
+                /* Can a comment have no creator? Adding this make ticketMapper fail the TicketMapper test because the ticket gets modified by adding a creator if Symphony has none
+                else {
+                    // A comment cannot have null as the creator
                     mappedCreator = ticket.getRequester();
                 }
+                 */
 //                for (Comment SymphonyComment : ticket.getComments()) {
 //                    if ((SymphonyComment.getSymphonyId() != null &&
 //                            Objects.equals(SymphonyComment.getSymphonyId(), CWComment.getSymphonyId())) ||

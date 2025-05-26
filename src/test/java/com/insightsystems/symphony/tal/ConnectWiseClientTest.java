@@ -111,7 +111,7 @@ public class ConnectWiseClientTest {
     void post_whenConfigIsMissing_shouldThrowTalAdapterSyncException() {
         when(config.getTicketSourceConfig()).thenReturn(null);
 
-        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.post(any(TicketSystemConfig.class),mock()));
+        Assertions.assertThrows(TalAdapterSyncException.class, () -> restCWClient.post(config,mock()));
     }
 
 }

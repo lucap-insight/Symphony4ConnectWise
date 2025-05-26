@@ -1,0 +1,36 @@
+{
+  "symphonyId": "1260177",
+  "symphonyLink": "https://chi-dev-ui.vnocsymphony.com/tickets/1260177",
+  "thirdPartyId": "244864",
+  "thirdPartyLink": "https://connect.insightsystems.com.au/v4_6_release/apis/3.0/service/tickets/244864",
+  "customerId": "1eacbcb6-baa2-409d-aa0f-75a28e5edb4c",
+  "priority": "Critical",
+  "status": "Open",
+  "statusChangedDate": 1747668414877,
+  "subject": "Communication Issue / Panda Room / Dummy test location / ConnectWise",
+  "description": "panda",
+  "requester": "Mykola.Matsishin@avispl.com",
+  "assignedTo": "Mykola.Matsishin@avispl.com",
+  "lastModified": 1747668415753,
+  "triggerName": "N/A",
+  "comments": [
+    {
+      "symphonyId": "94511",
+      "thirdPartyId": "d0b437651b0c561032253335cc4bcbc0",
+      "creator": null,
+      "text": "Device Information:\nName: Cisco C90 cp\nType: Single Codecs\nIP: 172.31.254.117\nSerial Number: B1AC10B00008\nManufacturer: Cisco\nModel: C90",
+      "lastModified": 1723803528000
+    }
+  ],
+  "extraParams": {
+    "requester": "Mykola.Matsishin@avispl.com",
+    "synced": "true",
+    "connectionFailed": "true",
+    "datetimeSynced": "1747668422175",
+    "syncType": "ConnectWise",
+    "syncStatus": "Success",
+    "assignedTo": "Mykola.Matsishin@avispl.com"
+  },
+  "highImportance": false
+}
+
