@@ -63,6 +63,12 @@ class ConnectWiseTalAdapterTest {
 		ReflectionTestUtils.setField(talAdapter, "ticketService", ticketService);
 //		ReflectionTestUtils.setField(talAdapter, "restCWClient", restCWClient); also wrong
 
+		try {
+			when(talConfigService.retrieveTicketSystemConfig(any())).thenReturn(config);
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e);
+		}
+
 		recoverableException = new TalAdapterSyncException("Recoverable exception", HttpStatus.valueOf(408));
 		notRecoverableException = new TalAdapterSyncException("Not recoverable exception");
 	}
@@ -71,6 +77,13 @@ class ConnectWiseTalAdapterTest {
 	public void resetMocks() {
 		// Reset the behavior of classB after each test
 		reset(ticketService);
+		reset(config);
+		reset(talConfigService);
+		try {
+			when(talConfigService.retrieveTicketSystemConfig(any())).thenReturn(config);
+		} catch (ExecutionException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Test
@@ -255,10 +268,10 @@ class ConnectWiseTalAdapterTest {
 		ConnectWiseClient connectWiseClient = new ConnectWiseClient();
 		ReflectionTestUtils.setField(connectWiseClient, "client", client);
 		TicketServiceImpl ticketService = new TicketServiceImpl(connectWiseClient);
-		talAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
+		TalAdapter newTalAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
 		when(client.send(any(),any())).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
 
-		TalTicket result = talAdapter.syncTalTicket(talTicket);
+		TalTicket result = newTalAdapter.syncTalTicket(talTicket);
 
 		assertEquals("Closed", result.getStatus());
 	}
