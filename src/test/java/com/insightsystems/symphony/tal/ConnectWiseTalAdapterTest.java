@@ -13,10 +13,16 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.http.HttpClient;
+import java.net.http.HttpClient.Version;
+import java.net.http.HttpHeaders;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 import org.springframework.http.HttpStatus;
@@ -25,6 +31,7 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import javax.net.ssl.SSLSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -269,11 +276,55 @@ class ConnectWiseTalAdapterTest {
 		ReflectionTestUtils.setField(connectWiseClient, "client", client);
 		TicketServiceImpl ticketService = new TicketServiceImpl(connectWiseClient);
 		TalAdapter newTalAdapter = new ConnectWiseTalAdapter(talConfigService, ticketService);
-		when(client.send(any(),any())).thenThrow(new HttpClientErrorException(HttpStatus.NOT_FOUND));
+		when(client.send(any(),any())).thenReturn(buildResponse());
 
 		TalTicket result = newTalAdapter.syncTalTicket(talTicket);
 
 		assertEquals("Closed", result.getStatus());
+	}
+
+	private static HttpResponse buildResponse() {
+		return new HttpResponse() {
+			@Override
+			public int statusCode() {
+				return 404;
+			}
+
+			@Override
+			public HttpRequest request() {
+				return null;
+			}
+
+			@Override
+			public Optional<HttpResponse> previousResponse() {
+				return Optional.empty();
+			}
+
+			@Override
+			public HttpHeaders headers() {
+				return null;
+			}
+
+			@Override
+			public Object body() {
+				return null;
+			}
+
+			@Override
+			public Optional<SSLSession> sslSession() {
+				return Optional.empty();
+			}
+
+			@Override
+			public URI uri() {
+				return null;
+			}
+
+			@Override
+			public Version version() {
+				return null;
+			}
+		};
 	}
 
 	private static TalTicket makeTalTicketFromJson(String path) throws IOException {
