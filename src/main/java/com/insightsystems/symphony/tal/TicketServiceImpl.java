@@ -177,6 +177,10 @@ public class TicketServiceImpl {
             // Make sure ticket knows it has been synced
             CWTicket.getExtraParams().replace("synced", "true");
         }
+        if (CWTicket.getExtraParams().putIfAbsent("connectionFailed", "false") != null) {
+            // Make sure ticket knows it has been synced
+            CWTicket.getExtraParams().replace("connectionFailed", "false");
+        }
 
     }
 
